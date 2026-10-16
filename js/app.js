@@ -2,7 +2,11 @@
   "use strict";
 
   var config = window.MYCSD_CONFIG;
-  var settings = window.MYCSD_SETTINGS_STORE.load(config);
+  var signInView = document.getElementById("sign-in-view");
+  var homeView = document.getElementById("home-view");
+  var signInButton = document.getElementById("google-sign-in");
+  var signInError = document.getElementById("sign-in-error");
+  var settings;
   var params = new URLSearchParams(window.location.search);
   var total = Number(config.fakeTotal);
   var override = params.get("total");
@@ -53,23 +57,54 @@
     return pool.length ? pool[Math.floor(Math.random() * pool.length)] : "";
   }
 
-  var remaining = Math.max(0, settings.target - total);
-  var percent = (total / settings.target) * 100;
-  var dday = localDate(settings.dday);
-  var daysLeft = dday ? daysFromToday(dday) : 0;
-  var weeksLeft = Math.ceil(Math.max(0, daysLeft) / 7);
-  var perWeek = Math.ceil(remaining / Math.max(1, weeksLeft));
-  var sentence = "";
+  function showHome() {
+    settings = window.MYCSD_SETTINGS_STORE.load(config);
+    var remaining = Math.max(0, settings.target - total);
+    var percent = (total / settings.target) * 100;
+    var dday = localDate(settings.dday);
+    var daysLeft = dday ? daysFromToday(dday) : 0;
+    var weeksLeft = Math.ceil(Math.max(0, daysLeft) / 7);
+    var perWeek = Math.ceil(remaining / Math.max(1, weeksLeft));
+    var sentence = "";
 
-  if (settings.messageStyle !== "off") {
-    if (dday && daysLeft < 0) sentence = "This sidang has ended.";
-    else sentence = pickSentence(percent, remaining, perWeek);
+    if (settings.messageStyle !== "off") {
+      if (dday && daysLeft < 0) sentence = "This sidang has ended.";
+      else sentence = pickSentence(percent, remaining, perWeek);
+    }
+
+    document.getElementById("total-points").textContent = formatPoints(total);
+    document.getElementById("message-line").textContent = sentence;
+    document.getElementById("message-line").hidden = !sentence;
+    document.getElementById("dday-label").textContent = dday
+      ? (daysLeft < 0 ? "D+" + Math.abs(daysLeft) : "D-" + daysLeft)
+      : "D-Day";
+    homeView.hidden = false;
+    signInView.hidden = true;
   }
 
-  document.getElementById("total-points").textContent = formatPoints(total);
-  document.getElementById("message-line").textContent = sentence;
-  document.getElementById("message-line").hidden = !sentence;
-  document.getElementById("dday-label").textContent = dday
-    ? (daysLeft < 0 ? "D+" + Math.abs(daysLeft) : "D-" + daysLeft)
-    : "D-Day";
+  function showSignIn() {
+    homeView.hidden = true;
+    signInView.hidden = false;
+  }
+
+  signInButton.addEventListener("click", async function () {
+    signInButton.disabled = true;
+    signInError.hidden = true;
+    try {
+      await window.MYCSD_AUTH.signInWithGoogle();
+    } catch (error) {
+      signInButton.disabled = false;
+      signInError.textContent = error.message || "Google sign-in could not start.";
+      signInError.hidden = false;
+    }
+  });
+
+  window.MYCSD_AUTH.getSession().then(function (session) {
+    if (session) showHome();
+    else showSignIn();
+    window.MYCSD_AUTH.onChange(function (changedSession) {
+      if (changedSession) showHome();
+      else showSignIn();
+    });
+  }).catch(showSignIn);
 }());

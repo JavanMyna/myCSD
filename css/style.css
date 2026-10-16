@@ -17,6 +17,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 .home-page { overflow: hidden; }
+[hidden] { display: none !important; }
+
+.sign-in-view { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; padding: 24px; }
+.sign-in-button {
+  border: 0;
+  padding: 10px 4px;
+  background: transparent;
+  color: #c8c8c8;
+  font: 400 1rem var(--system-font);
+  cursor: pointer;
+}
+.sign-in-button:hover { color: var(--white); }
+.sign-in-button:focus-visible, .sign-out-item:focus-visible { outline: 1px solid #888888; outline-offset: 5px; }
+.sign-in-button:disabled { color: var(--grey); cursor: wait; }
+.sign-in-error { max-width: 360px; margin: 20px 0 0; color: var(--grey); font-size: 0.78rem; line-height: 1.5; text-align: center; }
 
 .gear-link, .close-link {
   position: fixed;
@@ -32,7 +47,7 @@ body {
 }
 .gear-link svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
 .gear-link:hover, .close-link:hover { color: #b0b0b0; }
-.gear-link:focus-visible, .close-link:focus-visible { outline: 1px solid #888; outline-offset: 4px; }
+.gear-link:focus-visible, .close-link:focus-visible { outline: 1px solid #888888; outline-offset: 4px; }
 
 .dday-label {
   position: fixed;
@@ -77,6 +92,7 @@ body {
 }
 
 .settings-page { overflow-y: auto; }
+.auth-pending { visibility: hidden; }
 .settings-main { width: min(100% - 48px, 460px); margin: 92px auto 56px; }
 .settings-title { margin: 0 0 42px; color: var(--white); font-size: 1.25rem; font-weight: 400; letter-spacing: -0.025em; }
 .close-link { right: 20px; left: auto; color: var(--grey); font-size: 1.55rem; font-weight: 300; }
@@ -103,7 +119,19 @@ body {
 .plain-select, .plain-input[type="date"] { color-scheme: dark; }
 .custom-date { margin-top: 17px; }
 .save-state { min-height: 1.2em; margin: 24px 0 0; color: var(--grey); font-size: 0.72rem; }
-[hidden] { display: none !important; }
+.sign-out-item {
+  display: block;
+  margin: 42px 0 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--grey);
+  font: 400 0.86rem var(--system-font);
+  cursor: pointer;
+}
+.sign-out-item:hover { color: var(--white); }
+.sign-out-item:disabled { color: #555555; cursor: wait; }
+.sign-out-error { margin: 12px 0 0; color: var(--grey); font-size: 0.76rem; }
 
 @media (max-width: 360px) {
   .total-points { font-size: 27vw; }

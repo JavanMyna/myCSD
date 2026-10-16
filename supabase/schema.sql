@@ -1,0 +1,81 @@
+-- Create the activity table. The checks keep entries within the limits you specified.
+create table if not exists public.activities (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id),
+  sidang text,
+  name text not null check (char_length(name) between 1 and 100),
+  points integer not null check (points between 0 and 1000),
+  level text not null check (level in ('college', 'club', 'university', 'national')),
+  date date,
+  created_at timestamptz not null default now()
+);
+
+-- Create one settings row per user. Defaults match the starting app settings.
+create table if not exists public.settings (
+  user_id uuid primary key default auth.uid() references auth.users (id),
+  target integer not null default 300,
+  dday date not null default date '2027-07-18',
+  sidang text not null default '2026/2027',
+  message_style text not null default 'motivational'
+    check (message_style in ('motivational', 'harsh', 'off')),
+  updated_at timestamptz not null default now()
+);
+
+-- This index helps load one user's activities for a particular sidang quickly.
+create index if not exists activities_user_id_sidang_idx
+  on public.activities (user_id, sidang);
+
+-- Enable row security so table permissions alone cannot expose anyone's rows.
+alter table public.activities enable row level security;
+alter table public.settings enable row level security;
+
+-- Remove ordinary and public table privileges from anonymous visitors. Give
+-- signed-in users the basic operations that owner policies limit below.
+revoke all on table public.activities, public.settings from anon, public;
+grant select, insert, update, delete on table public.activities, public.settings to authenticated;
+
+-- Activity policies let a signed-in user work only with rows owned by that user.
+create policy activities_select_own
+  on public.activities for select to authenticated
+  using (user_id = auth.uid());
+
+create policy activities_insert_own
+  on public.activities for insert to authenticated
+  with check (user_id = auth.uid());
+
+create policy activities_update_own
+  on public.activities for update to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+create policy activities_delete_own
+  on public.activities for delete to authenticated
+  using (user_id = auth.uid());
+
+-- Settings policies keep each user's settings private and writable only by them.
+create policy settings_select_own
+  on public.settings for select to authenticated
+  using (user_id = auth.uid());
+
+create policy settings_insert_own
+  on public.settings for insert to authenticated
+  with check (user_id = auth.uid());
+
+create policy settings_update_own
+  on public.settings for update to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+create policy settings_delete_own
+  on public.settings for delete to authenticated
+  using (user_id = auth.uid());
+
+-- How to run and check it
+-- In Supabase, open SQL Editor, create a new query, paste this whole file, and
+-- click Run. This script is for you to run; it has not been run from this app.
+-- To confirm row security, open Table Editor, select activities, then settings,
+-- and check that RLS is enabled for each table.
+-- To check privacy after the app connects to Supabase in Step 5, sign in as
+-- account one and add an activity and settings row. Sign out, sign in as account
+-- two, and confirm account one's rows are absent from both screens. An attempt
+-- to insert a row as account two with account one's user_id should be rejected.

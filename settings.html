@@ -6,11 +6,13 @@
   <meta name="theme-color" content="#000000">
   <title>Settings · myCSD tracker</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="js/config.js" defer></script>
   <script src="js/settings-store.js" defer></script>
+  <script src="js/auth.js" defer></script>
   <script src="js/settings.js" defer></script>
 </head>
-<body class="settings-page">
+<body class="settings-page auth-pending">
   <a class="close-link" href="index.html" aria-label="Close settings">×</a>
   <main class="settings-main">
     <h1 class="settings-title">Settings</h1>
@@ -45,6 +47,8 @@
     </section>
 
     <p class="save-state" id="save-state" aria-live="polite"></p>
+    <button class="sign-out-item" id="sign-out" type="button">Sign out</button>
+    <p class="sign-out-error" id="sign-out-error" aria-live="polite" hidden></p>
   </main>
 </body>
 </html>
