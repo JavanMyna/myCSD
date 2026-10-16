@@ -1,4 +1,4 @@
-// Validate and save one activity without sending user_id; RLS assigns ownership.
+// Validate and save an activity after loading its sidang from the settings row.
 (function () {
   "use strict";
 
@@ -10,21 +10,48 @@
   var dateInput = document.getElementById("activity-date");
   var errorLine = document.getElementById("form-error");
   var saveButton = document.getElementById("save-activity");
+  var pageError = document.getElementById("page-load-error");
+  var retryButton = document.getElementById("page-load-retry");
   var levels = ["college", "club", "university", "national"];
+  var currentSettings = null;
 
   function localToday() {
     var now = new Date();
     return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
   }
 
+  function validDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    var date = new Date(value + "T00:00:00Z");
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+  }
+
   dateInput.value = localToday();
+
+  async function loadSettings() {
+    main.hidden = true;
+    pageError.hidden = true;
+    retryButton.hidden = true;
+    retryButton.disabled = true;
+    try {
+      currentSettings = await window.MYCSD_SETTINGS_STORE.load(window.MYCSD_CONFIG);
+      main.hidden = false;
+    } catch (error) {
+      pageError.textContent = "Couldn't load settings.";
+      pageError.hidden = false;
+      retryButton.hidden = false;
+      retryButton.disabled = false;
+    }
+  }
+
+  retryButton.addEventListener("click", loadSettings);
   window.MYCSD_AUTH.getSession().then(function (session) {
     if (!session) {
       window.location.replace("index.html");
       return;
     }
     document.body.classList.remove("auth-pending");
-    main.hidden = false;
+    loadSettings();
   }).catch(function () {
     window.location.replace("index.html");
   });
@@ -32,6 +59,7 @@
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
     errorLine.textContent = "";
+    if (!currentSettings) return;
     var name = nameInput.value.trim();
     var pointsText = pointsInput.value.trim();
     var points = Number(pointsText);
@@ -49,16 +77,15 @@
       errorLine.textContent = "Choose a valid level.";
       return;
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date + "T00:00:00"))) {
+    if (!validDate(date)) {
       errorLine.textContent = "Choose a valid date.";
       return;
     }
 
     saveButton.disabled = true;
     try {
-      var settings = window.MYCSD_SETTINGS_STORE.load(window.MYCSD_CONFIG);
       await window.MYCSD_ACTIVITY_DATA.add({
-        sidang: settings.sidang,
+        sidang: currentSettings.sidang,
         name: name,
         points: points,
         level: levelInput.value,

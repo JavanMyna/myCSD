@@ -18,8 +18,33 @@ create table if not exists public.settings (
   sidang text not null default '2026/2027',
   message_style text not null default 'motivational'
     check (message_style in ('motivational', 'harsh', 'off')),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint settings_target_range_check check (target between 1 and 5000),
+  constraint settings_sidang_length_check check (char_length(btrim(sidang)) between 1 and 20)
 );
+
+-- Add these checks when the table already exists. The guards make this block safe to run once.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'settings_target_range_check'
+      AND conrelid = 'public.settings'::regclass
+  ) THEN
+    ALTER TABLE public.settings
+      ADD CONSTRAINT settings_target_range_check CHECK (target BETWEEN 1 AND 5000);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'settings_sidang_length_check'
+      AND conrelid = 'public.settings'::regclass
+  ) THEN
+    ALTER TABLE public.settings
+      ADD CONSTRAINT settings_sidang_length_check
+      CHECK (char_length(btrim(sidang)) BETWEEN 1 AND 20);
+  END IF;
+END $$;
 
 -- This index helps load one user's activities for a particular sidang quickly.
 create index if not exists activities_user_id_sidang_idx
@@ -71,11 +96,9 @@ create policy settings_delete_own
   using (user_id = auth.uid());
 
 -- How to run and check it
--- In Supabase, open SQL Editor, create a new query, paste this whole file, and
--- click Run. This script is for you to run; it has not been run from this app.
+-- For the first setup, open SQL Editor, create a new query, paste this whole file,
+-- and click Run. This app does not run SQL against your project.
+-- For an existing setup, run only the DO block above the activity index to add
+-- the two new settings checks. See README.md for the exact block to run.
 -- To confirm row security, open Table Editor, select activities, then settings,
 -- and check that RLS is enabled for each table.
--- To check privacy after the app connects to Supabase in Step 5, sign in as
--- account one and add an activity and settings row. Sign out, sign in as account
--- two, and confirm account one's rows are absent from both screens. An attempt
--- to insert a row as account two with account one's user_id should be rejected.

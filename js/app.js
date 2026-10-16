@@ -9,6 +9,7 @@
   var totalNode = document.getElementById("total-points");
   var messageNode = document.getElementById("message-line");
   var ddayNode = document.getElementById("dday-label");
+  var retryButton = document.getElementById("home-retry");
 
   function dayNumber(value) {
     var parts = String(value).split("-").map(Number);
@@ -80,15 +81,26 @@
   }
 
   async function loadHome() {
-    var config = window.MYCSD_CONFIG;
-    var settings = window.MYCSD_SETTINGS_STORE.load(config);
-    var countdown = ddayInfo(settings.dday);
-    ddayNode.textContent = countdown.label;
+    retryButton.hidden = true;
+    retryButton.disabled = true;
     totalNode.textContent = "—";
     totalNode.classList.add("total-loading");
+    ddayNode.textContent = "";
     messageNode.textContent = "";
     showHome();
 
+    var settings;
+    try {
+      settings = await window.MYCSD_SETTINGS_STORE.load(window.MYCSD_CONFIG);
+    } catch (error) {
+      messageNode.textContent = "Couldn't load settings.";
+      retryButton.hidden = false;
+      retryButton.disabled = false;
+      return;
+    }
+
+    var countdown = ddayInfo(settings.dday);
+    ddayNode.textContent = countdown.label;
     var params = new URLSearchParams(window.location.search);
     var testValue = params.get("total");
     var total;
@@ -99,7 +111,6 @@
       try {
         total = await window.MYCSD_ACTIVITY_DATA.pointsForSidang(settings.sidang);
       } catch (error) {
-        totalNode.textContent = "—";
         messageNode.textContent = "Couldn't load your total. Try again.";
         return;
       }
@@ -120,6 +131,8 @@
       signInButton.disabled = false;
     }
   });
+
+  retryButton.addEventListener("click", loadHome);
 
   window.MYCSD_AUTH.getSession().then(function (session) {
     if (!session) {

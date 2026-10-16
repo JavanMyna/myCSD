@@ -14,7 +14,9 @@
 </head>
 <body class="settings-page auth-pending">
   <a class="close-link" href="index.html" aria-label="Close settings">×</a>
-  <main class="settings-main">
+  <p class="settings-load-error" id="settings-load-error" aria-live="polite" hidden>Couldn't load settings.</p>
+  <button class="settings-load-retry" id="settings-load-retry" type="button" hidden>Retry</button>
+  <main class="settings-main" id="settings-main" hidden>
     <h1 class="settings-title">Settings</h1>
 
     <section class="setting-row">
@@ -28,7 +30,7 @@
 
     <section class="setting-row">
       <label class="setting-label" for="target">Target</label>
-      <input class="plain-input" id="target" type="number" min="1" step="1" inputmode="numeric" required>
+      <input class="plain-input" id="target" type="number" min="1" max="5000" step="1" inputmode="numeric" required>
     </section>
 
     <section class="setting-row">
@@ -43,7 +45,7 @@
 
     <section class="setting-row">
       <label class="setting-label" for="sidang">Sidang name</label>
-      <input class="plain-input" id="sidang" type="text" maxlength="40" autocomplete="off">
+      <input class="plain-input" id="sidang" type="text" maxlength="20" autocomplete="off">
     </section>
 
     <p class="save-state" id="save-state" aria-live="polite"></p>

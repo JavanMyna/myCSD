@@ -1,4 +1,4 @@
-// Load and delete activities for the sidang selected in local settings.
+// Load and delete activities for the sidang selected in the user's settings row.
 (function () {
   "use strict";
 
@@ -6,6 +6,8 @@
   var list = document.getElementById("activity-list");
   var emptyLine = document.getElementById("empty-line");
   var errorLine = document.getElementById("list-error");
+  var pageError = document.getElementById("page-load-error");
+  var retryButton = document.getElementById("page-load-retry");
 
   function addText(parent, className, value) {
     var node = document.createElement("span");
@@ -48,23 +50,48 @@
     return row;
   }
 
-  window.MYCSD_AUTH.getSession().then(async function (session) {
-    if (!session) {
-      window.location.replace("index.html");
+  async function loadList() {
+    main.hidden = true;
+    pageError.hidden = true;
+    retryButton.hidden = true;
+    retryButton.disabled = true;
+    errorLine.textContent = "";
+    list.replaceChildren();
+    emptyLine.hidden = true;
+    var settings;
+    try {
+      settings = await window.MYCSD_SETTINGS_STORE.load(window.MYCSD_CONFIG);
+    } catch (error) {
+      pageError.textContent = "Couldn't load settings.";
+      pageError.hidden = false;
+      retryButton.hidden = false;
+      retryButton.disabled = false;
       return;
     }
-    document.body.classList.remove("auth-pending");
+
     main.hidden = false;
     try {
-      var settings = window.MYCSD_SETTINGS_STORE.load(window.MYCSD_CONFIG);
       var activities = await window.MYCSD_ACTIVITY_DATA.listForSidang(settings.sidang);
       activities.forEach(function (activity) {
         list.appendChild(makeRow(activity));
       });
       updateEmpty();
     } catch (error) {
-      errorLine.textContent = "Couldn't load activities. Try again.";
+      pageError.textContent = "Couldn't load activities.";
+      pageError.hidden = false;
+      retryButton.hidden = false;
+      retryButton.disabled = false;
     }
+  }
+
+  retryButton.addEventListener("click", loadList);
+  window.MYCSD_AUTH.getSession().then(function (session) {
+    if (!session) {
+      window.location.replace("index.html");
+      return;
+    }
+    document.body.classList.remove("auth-pending");
+    loadList();
   }).catch(function () {
     window.location.replace("index.html");
   });

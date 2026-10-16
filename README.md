@@ -1,6 +1,6 @@
 myCSD tracker
 
-A minimalist mobile-first tracker for USM students to see their myCSD points for the current sidang. Activities and their points are stored in Supabase. App settings stay in this browser's localStorage until Step 6.
+A minimalist mobile-first tracker for USM students to see their myCSD points for the current sidang. Activities and settings are stored in Supabase. Settings are private to the signed-in account and follow it across browsers.
 
 Project files
 index.html is the signed-out screen and minimal home screen after sign-in.
@@ -11,13 +11,13 @@ settings.html contains message style, target, D-Day, sidang, and sign-out contro
 css/style.css contains the black minimal style.
 js/config.js contains app defaults and the Supabase project URL and public anon key settings.
 js/auth.js creates the Supabase browser client and handles Google sign-in, sessions, and sign-out.
-js/settings-store.js keeps settings in localStorage for now.
+js/settings-store.js loads, migrates, and saves settings through Supabase.
 js/activity-data.js sends activity requests to Supabase without a user_id; database row security controls ownership.
 js/app.js calculates the current sidang total from activities and shows the home message and D-Day.
 js/add-activity.js checks and saves activity form values.
 js/activities-list.js loads and deletes current-sidang activities.
 js/menu.js protects the menu and handles sign-out.
-js/settings.js saves settings locally and handles sign-out.
+js/settings.js loads, validates, and saves account settings.
 supabase/schema.sql is the SQL to run manually in Supabase.
 SPEC.md is the original project brief.
 done.md has completed-step learning notes.
@@ -68,12 +68,40 @@ Before testing, open js/config.js and enter the Supabase project URL and public 
 4. Secret warning
 The Google client secret goes only in the Supabase dashboard's Google provider settings. Never put it in code, files, GitHub, or this chat. Never put the Supabase service role key in browser code or share it. Only the public anon key belongs in js/config.js.
 
+Step 6 database checks
+The project already has the settings table. In Supabase, open SQL Editor, choose New query, paste the complete block below, and click Run. This adds the target and sidang checks. Do not run the rest of schema.sql again on this existing project.
+
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'settings_target_range_check'
+          AND conrelid = 'public.settings'::regclass
+      ) THEN
+        ALTER TABLE public.settings
+          ADD CONSTRAINT settings_target_range_check CHECK (target BETWEEN 1 AND 5000);
+      END IF;
+
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'settings_sidang_length_check'
+          AND conrelid = 'public.settings'::regclass
+      ) THEN
+        ALTER TABLE public.settings
+          ADD CONSTRAINT settings_sidang_length_check
+          CHECK (char_length(btrim(sidang)) BETWEEN 1 AND 20);
+      END IF;
+    END $$;
+
+Settings load from the signed-in user's settings row. The first successful load creates that row if needed. If this browser still has older local settings and the account has no row, those values are migrated first. Later changes are saved to Supabase and follow the account.
+
 Short manual test list
 Sign in with your first Google account and add an activity. Confirm the home total includes its points and Activities shows the row.
 Add activities under different sidang names by changing Settings, then confirm the home total and Activities list use only the selected sidang.
 Delete an activity and confirm the browser asks Delete this activity? before removing it.
 Open the home address with ?total=250 to check the temporary message test override.
 Sign out, then sign in with a SECOND Google account. Confirm its total is zero or its activity list says No activities yet, and it cannot see the first account's activity.
+Change a setting on one device, sign in to the same account in another browser, and confirm the changed setting follows the account.
 
 Official setup references
 Supabase Google sign-in: https://supabase.com/docs/guides/auth/social-login/auth-google

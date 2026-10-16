@@ -29,7 +29,7 @@ body {
   cursor: pointer;
 }
 .sign-in-button:hover { color: var(--white); }
-.sign-in-button:focus-visible, .sign-out-item:focus-visible, .plain-action:focus-visible { outline: 1px solid #888888; outline-offset: 5px; }
+.sign-in-button:focus-visible, .sign-out-item:focus-visible, .plain-action:focus-visible, .home-retry:focus-visible, .page-load-retry:focus-visible, .settings-load-retry:focus-visible { outline: 1px solid #888888; outline-offset: 5px; }
 .sign-in-button:disabled { color: var(--grey); cursor: wait; }
 .sign-in-error { max-width: 360px; margin: 20px 0 0; color: var(--grey); font-size: 0.78rem; line-height: 1.5; text-align: center; }
 
@@ -91,6 +91,19 @@ body {
   line-height: 1.5;
   text-align: center;
 }
+.home-retry {
+  position: fixed;
+  top: calc(50% + clamp(4.7rem, 23vw, 8rem));
+  left: 50%;
+  transform: translateX(-50%);
+  border: 0;
+  padding: 5px;
+  background: transparent;
+  color: #b0b0b0;
+  font: 400 0.8rem var(--system-font);
+  cursor: pointer;
+  pointer-events: auto;
+}
 
 .settings-page { overflow-y: auto; }
 .auth-pending { visibility: hidden; }
@@ -133,6 +146,9 @@ body {
 .sign-out-item:hover { color: var(--white); }
 .sign-out-item:disabled { color: #555555; cursor: wait; }
 .sign-out-error { margin: 12px 0 0; color: var(--grey); font-size: 0.76rem; }
+.settings-load-error, .settings-load-retry { width: min(100% - 48px, 460px); margin: 92px auto 0; color: var(--grey); font-size: 0.8rem; }
+.settings-load-retry, .page-load-retry { display: block; border: 0; padding: 8px 0; background: transparent; color: #b0b0b0; font: 400 0.82rem var(--system-font); text-align: left; cursor: pointer; }
+.settings-load-retry { margin-top: 4px; }
 
 .plain-page { overflow-y: auto; }
 .plain-main { width: min(100% - 48px, 460px); margin: 0 auto; }
@@ -164,8 +180,11 @@ body {
 .activity-name { overflow-wrap: anywhere; color: #dedede; font-size: 0.92rem; }
 .activity-meta { color: var(--grey); font-size: 0.72rem; line-height: 1.45; }
 .delete-action { flex: none; color: var(--grey); font-size: 0.78rem; }
+.page-load-error { width: min(100% - 48px, 460px); margin: 94px auto 0; color: var(--grey); font-size: 0.8rem; }
+.page-load-retry { width: min(100% - 48px, 460px); margin: 4px auto 0; }
 
 @media (max-width: 360px) {
   .total-points { font-size: 27vw; }
   .settings-main, .plain-main { width: min(100% - 36px, 460px); }
+  .settings-load-error, .settings-load-retry, .page-load-error, .page-load-retry { width: min(100% - 36px, 460px); }
 }
