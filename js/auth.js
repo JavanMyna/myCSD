@@ -33,9 +33,7 @@
       current.hash = "";
       changed = true;
     }
-    if (changed) {
-      window.history.replaceState({}, document.title, current.pathname + current.search);
-    }
+    if (changed) window.history.replaceState({}, document.title, current.pathname + current.search);
   }
 
   function homeRedirectUrl() {
@@ -81,6 +79,7 @@
 
   window.MYCSD_AUTH = {
     configured: Boolean(client),
+    getClient: function () { return client; },
     getSession: getSession,
     onChange: onChange,
     signInWithGoogle: signInWithGoogle,

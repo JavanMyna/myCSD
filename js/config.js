@@ -10,8 +10,5 @@ window.MYCSD_CONFIG = {
   target: 300,
   dday: "2027-07-18",
   sidang: "2026/2027",
-  messageStyle: "motivational",
-
-  // TEMPORARY: fake points until activities are connected in Step 5.
-  fakeTotal: 120
+  messageStyle: "motivational"
 };

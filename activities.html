@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>Activities · myCSD tracker</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="js/config.js" defer></script>
+  <script src="js/settings-store.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/activity-data.js" defer></script>
+  <script src="js/activities-list.js" defer></script>
+</head>
+<body class="plain-page auth-pending">
+  <a class="close-link" href="menu.html" aria-label="Close activities">×</a>
+  <main class="plain-main list-main" id="list-main" hidden>
+    <h1 class="plain-title">Activities</h1>
+    <p class="plain-error" id="list-error" aria-live="polite"></p>
+    <p class="empty-line" id="empty-line" hidden>No activities yet.</p>
+    <ul class="activity-list" id="activity-list" aria-label="Activities"></ul>
+  </main>
+</body>
+</html>

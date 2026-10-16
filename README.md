@@ -1,15 +1,22 @@
 myCSD tracker
 
-A minimalist mobile-first tracker for USM students to see their myCSD points for the current sidang.
+A minimalist mobile-first tracker for USM students to see their myCSD points for the current sidang. Activities and their points are stored in Supabase. App settings stay in this browser's localStorage until Step 6.
 
 Project files
-index.html is the sign-in screen and, after sign-in, the minimal home screen.
+index.html is the signed-out screen and minimal home screen after sign-in.
+menu.html is the plain menu opened from the home gear.
+add-activity.html contains the activity form.
+activities.html lists and deletes activities for the current sidang.
 settings.html contains message style, target, D-Day, sidang, and sign-out controls.
 css/style.css contains the black minimal style.
-js/config.js contains app defaults and placeholders for the Supabase project URL and public anon key.
-js/auth.js creates the Supabase browser client and handles Google sign-in, session checks, return URL cleanup, and sign-out.
+js/config.js contains app defaults and the Supabase project URL and public anon key settings.
+js/auth.js creates the Supabase browser client and handles Google sign-in, sessions, and sign-out.
 js/settings-store.js keeps settings in localStorage for now.
-js/app.js shows only the sign-in screen when signed out and the home screen when signed in.
+js/activity-data.js sends activity requests to Supabase without a user_id; database row security controls ownership.
+js/app.js calculates the current sidang total from activities and shows the home message and D-Day.
+js/add-activity.js checks and saves activity form values.
+js/activities-list.js loads and deletes current-sidang activities.
+js/menu.js protects the menu and handles sign-out.
 js/settings.js saves settings locally and handles sign-out.
 supabase/schema.sql is the SQL to run manually in Supabase.
 SPEC.md is the original project brief.
@@ -56,10 +63,17 @@ Add these Redirect URLs:
     https://mycsd.javanmyna.fyi/
 The local wildcard allows the local preview URL, including the temporary total query value. The production entry is the exact home address.
 
-Before testing, open js/config.js and replace the Supabase project URL and public anon key placeholders with the values from your Supabase project. The project URL and public anon key are in the Supabase project API settings. The public anon key is intended for the browser and is protected by the row policies you added.
+Before testing, open js/config.js and enter the Supabase project URL and public anon key from your Supabase project API settings. The public anon key is intended for browser use and is protected by the row policies you added.
 
 4. Secret warning
 The Google client secret goes only in the Supabase dashboard's Google provider settings. Never put it in code, files, GitHub, or this chat. Never put the Supabase service role key in browser code or share it. Only the public anon key belongs in js/config.js.
+
+Short manual test list
+Sign in with your first Google account and add an activity. Confirm the home total includes its points and Activities shows the row.
+Add activities under different sidang names by changing Settings, then confirm the home total and Activities list use only the selected sidang.
+Delete an activity and confirm the browser asks Delete this activity? before removing it.
+Open the home address with ?total=250 to check the temporary message test override.
+Sign out, then sign in with a SECOND Google account. Confirm its total is zero or its activity list says No activities yet, and it cannot see the first account's activity.
 
 Official setup references
 Supabase Google sign-in: https://supabase.com/docs/guides/auth/social-login/auth-google

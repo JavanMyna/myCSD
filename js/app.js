@@ -1,90 +1,112 @@
+// Home display and temporary fake-total testing are handled here.
 (function () {
   "use strict";
 
-  var config = window.MYCSD_CONFIG;
   var signInView = document.getElementById("sign-in-view");
-  var homeView = document.getElementById("home-view");
   var signInButton = document.getElementById("google-sign-in");
   var signInError = document.getElementById("sign-in-error");
-  var settings;
-  var params = new URLSearchParams(window.location.search);
-  var total = Number(config.fakeTotal);
-  var override = params.get("total");
+  var homeView = document.getElementById("home-view");
+  var totalNode = document.getElementById("total-points");
+  var messageNode = document.getElementById("message-line");
+  var ddayNode = document.getElementById("dday-label");
 
-  // TEMPORARY: lets Fred preview message ranges before activities come from Supabase.
-  if (override !== null && Number.isFinite(Number(override)) && Number(override) >= 0) {
-    total = Number(override);
-  }
-  if (!Number.isFinite(total) || total < 0) total = 0;
-
-  function localDate(dateString) {
-    var parts = dateString.split("-").map(Number);
-    if (parts.length !== 3 || parts.some(function (part) { return !Number.isFinite(part); })) return null;
-    var date = new Date(parts[0], parts[1] - 1, parts[2]);
-    if (date.getFullYear() !== parts[0] || date.getMonth() !== parts[1] - 1 || date.getDate() !== parts[2]) return null;
-    return date;
+  function dayNumber(value) {
+    var parts = String(value).split("-").map(Number);
+    return Math.floor(Date.UTC(parts[0], parts[1] - 1, parts[2]) / 86400000);
   }
 
-  function daysFromToday(date) {
-    var now = new Date();
-    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    return Math.round((date.getTime() - today.getTime()) / 86400000);
+  function ddayInfo(dday) {
+    var today = new Date();
+    var todayKey = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    var days = Math.round((dayNumber(dday) * 86400000 - todayKey) / 86400000);
+    return { days: days, label: days < 0 ? "D+" + Math.abs(days) : "D-" + days };
   }
 
-  function formatPoints(value) {
-    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
+  function choose(items) {
+    return items[Math.floor(Math.random() * items.length)];
   }
 
-  function pickSentence(percent, remaining, perWeek) {
-    var pool = [];
-    if (settings.messageStyle === "motivational") {
-      if (percent < 25) pool = ["Work on it bro!", "Pick one event this week. Just one."];
-      else if (percent < 75) pool = ["Keep up the momentum.", "Good progress. Don't slow down now."];
-      else if (percent < 100) pool = ["So close. One or two more activities.", "Finish strong."];
-      else pool = ["Target reached. Anything extra is a bonus."];
-    } else if (settings.messageStyle === "harsh") {
-      if (percent < 25) pool = [
+  function sentenceFor(total, settings, daysRemaining) {
+    if (daysRemaining < 0) return "This sidang has ended.";
+    if (settings.messageStyle === "off") return "";
+
+    var target = Number(settings.target) || 300;
+    var remaining = Math.max(0, target - total);
+    var percent = total / target * 100;
+    var weeks = Math.ceil(Math.max(0, daysRemaining) / 7);
+    var perWeek = weeks > 0 ? Math.ceil(remaining / weeks) : remaining;
+    var pools;
+
+    if (settings.messageStyle === "harsh") {
+      if (percent < 25) pools = [
         "Nobody is going to collect these points for you.",
         "Every week you wait, you need more points per week."
       ];
-      else if (percent < 75) pool = [
+      else if (percent < 75) pools = [
         "You need " + perWeek + " a week. Is this week one of them?",
         "Being busy isn't the same as being on track."
       ];
-      else if (percent < 100) pool = ["Almost is still not there.", formatPoints(remaining) + " left. No excuses now."];
-      else pool = ["Target reached. Don't coast."];
+      else if (percent < 100) pools = [
+        "Almost is still not there.",
+        remaining + " left. No excuses now."
+      ];
+      else pools = ["Target reached. Don't coast."];
+    } else {
+      if (percent < 25) pools = [
+        "Work on it bro!",
+        "Pick one event this week. Just one."
+      ];
+      else if (percent < 75) pools = [
+        "Keep up the momentum.",
+        "Good progress. Don't slow down now."
+      ];
+      else if (percent < 100) pools = [
+        "So close. One or two more activities.",
+        "Finish strong."
+      ];
+      else pools = ["Target reached. Anything extra is a bonus."];
     }
-    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : "";
+    return choose(pools);
+  }
+
+  function showSignedOut() {
+    signInView.hidden = false;
+    homeView.hidden = true;
   }
 
   function showHome() {
-    settings = window.MYCSD_SETTINGS_STORE.load(config);
-    var remaining = Math.max(0, settings.target - total);
-    var percent = (total / settings.target) * 100;
-    var dday = localDate(settings.dday);
-    var daysLeft = dday ? daysFromToday(dday) : 0;
-    var weeksLeft = Math.ceil(Math.max(0, daysLeft) / 7);
-    var perWeek = Math.ceil(remaining / Math.max(1, weeksLeft));
-    var sentence = "";
-
-    if (settings.messageStyle !== "off") {
-      if (dday && daysLeft < 0) sentence = "This sidang has ended.";
-      else sentence = pickSentence(percent, remaining, perWeek);
-    }
-
-    document.getElementById("total-points").textContent = formatPoints(total);
-    document.getElementById("message-line").textContent = sentence;
-    document.getElementById("message-line").hidden = !sentence;
-    document.getElementById("dday-label").textContent = dday
-      ? (daysLeft < 0 ? "D+" + Math.abs(daysLeft) : "D-" + daysLeft)
-      : "D-Day";
-    homeView.hidden = false;
     signInView.hidden = true;
+    homeView.hidden = false;
   }
 
-  function showSignIn() {
-    homeView.hidden = true;
-    signInView.hidden = false;
+  async function loadHome() {
+    var config = window.MYCSD_CONFIG;
+    var settings = window.MYCSD_SETTINGS_STORE.load(config);
+    var countdown = ddayInfo(settings.dday);
+    ddayNode.textContent = countdown.label;
+    totalNode.textContent = "—";
+    totalNode.classList.add("total-loading");
+    messageNode.textContent = "";
+    showHome();
+
+    var params = new URLSearchParams(window.location.search);
+    var testValue = params.get("total");
+    var total;
+    if (testValue !== null && testValue.trim() !== "" && Number.isFinite(Number(testValue)) && Number(testValue) >= 0) {
+      // TEMPORARY: the URL value overrides Supabase data for message and countdown checks.
+      total = Number(testValue);
+    } else {
+      try {
+        total = await window.MYCSD_ACTIVITY_DATA.pointsForSidang(settings.sidang);
+      } catch (error) {
+        totalNode.textContent = "—";
+        messageNode.textContent = "Couldn't load your total. Try again.";
+        return;
+      }
+    }
+    totalNode.textContent = String(total);
+    totalNode.classList.remove("total-loading");
+    messageNode.textContent = sentenceFor(total, settings, countdown.days);
   }
 
   signInButton.addEventListener("click", async function () {
@@ -93,18 +115,19 @@
     try {
       await window.MYCSD_AUTH.signInWithGoogle();
     } catch (error) {
-      signInButton.disabled = false;
-      signInError.textContent = error.message || "Google sign-in could not start.";
+      signInError.textContent = "Couldn't sign in. Check your connection and try again.";
       signInError.hidden = false;
+      signInButton.disabled = false;
     }
   });
 
   window.MYCSD_AUTH.getSession().then(function (session) {
-    if (session) showHome();
-    else showSignIn();
-    window.MYCSD_AUTH.onChange(function (changedSession) {
-      if (changedSession) showHome();
-      else showSignIn();
-    });
-  }).catch(showSignIn);
+    if (!session) {
+      showSignedOut();
+      return;
+    }
+    loadHome();
+  }).catch(function () {
+    showSignedOut();
+  });
 }());
