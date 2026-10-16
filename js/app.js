@@ -1,4 +1,4 @@
-// Home display and temporary fake-total testing are handled here.
+// Home display loads the signed-in user's settings and current-sidang total.
 (function () {
   "use strict";
 
@@ -101,23 +101,14 @@
 
     var countdown = ddayInfo(settings.dday);
     ddayNode.textContent = countdown.label;
-    var params = new URLSearchParams(window.location.search);
-    var testValue = params.get("total");
-    var total;
-    if (testValue !== null && testValue.trim() !== "" && Number.isFinite(Number(testValue)) && Number(testValue) >= 0) {
-      // TEMPORARY: the URL value overrides Supabase data for message and countdown checks.
-      total = Number(testValue);
-    } else {
-      try {
-        total = await window.MYCSD_ACTIVITY_DATA.pointsForSidang(settings.sidang);
-      } catch (error) {
-        messageNode.textContent = "Couldn't load your total. Try again.";
-        return;
-      }
+    try {
+      var total = await window.MYCSD_ACTIVITY_DATA.pointsForSidang(settings.sidang);
+      totalNode.textContent = String(total);
+      totalNode.classList.remove("total-loading");
+      messageNode.textContent = sentenceFor(total, settings, countdown.days);
+    } catch (error) {
+      messageNode.textContent = "Couldn't load your total. Try again.";
     }
-    totalNode.textContent = String(total);
-    totalNode.classList.remove("total-loading");
-    messageNode.textContent = sentenceFor(total, settings, countdown.days);
   }
 
   signInButton.addEventListener("click", async function () {

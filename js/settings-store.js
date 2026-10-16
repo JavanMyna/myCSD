@@ -95,14 +95,7 @@
       .eq("user_id", userId)
       .select(COLUMNS)
       .maybeSingle();
-    if (result.error) {
-      console.error("Supabase settings save failed", {
-        message: result.error.message,
-        code: result.error.code,
-        details: result.error.details
-      });
-      throw result.error;
-    }
+    if (result.error) throw result.error;
     if (!result.data) throw new Error("Settings row was not updated.");
     return mapRow(result.data);
   }

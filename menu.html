@@ -10,7 +10,9 @@
   <script src="js/config.js" defer></script>
   <script src="js/settings-store.js" defer></script>
   <script src="js/auth.js" defer></script>
+  <script src="js/export-data.js" defer></script>
   <script src="js/menu.js" defer></script>
+  <script data-goatcounter="https://myna-dev.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body class="plain-page auth-pending">
   <a class="close-link" href="index.html" aria-label="Close menu">×</a>
@@ -18,6 +20,8 @@
     <nav class="menu-list" aria-label="Main menu">
       <a class="plain-action" href="add-activity.html">Add activity</a>
       <a class="plain-action" href="activities.html">Activities</a>
+      <button class="plain-action" id="export-data" type="button">Export my data</button>
+      <p class="plain-error export-status" id="export-status" aria-live="polite" hidden></p>
       <a class="plain-action" href="settings.html">Settings</a>
       <button class="plain-action" id="menu-sign-out" type="button">Sign out</button>
       <p class="plain-error" id="menu-error" aria-live="polite"></p>

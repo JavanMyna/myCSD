@@ -7,3 +7,4 @@ Step 3: No additional questions were asked. The SQL file includes plain-language
 Step 4: No additional questions were asked. The local server command, Google Cloud setup, Supabase provider steps, and secret handling warning are in README.md.
 Step 5: No additional questions were asked. README.md includes a manual test list, including a second Google account privacy check.
 Step 6: No further questions were asked. The approved design was extended so failed reads cannot create defaults, and Supabase SQL checks protect target and sidang values.
+Step 7: No additional questions were asked. The README lists how to export the version 1 JSON and prepare the static site for Cloudflare Pages and GoatCounter.

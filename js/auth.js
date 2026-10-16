@@ -37,11 +37,7 @@
   }
 
   function homeRedirectUrl() {
-    var current = new URL(window.location.href);
-    var redirect = new URL(".", current);
-    var total = current.searchParams.get("total");
-    if (total !== null) redirect.searchParams.set("total", total);
-    return redirect.toString();
+    return new URL(".", window.location.href).toString();
   }
 
   async function getSession() {

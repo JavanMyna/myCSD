@@ -3,20 +3,22 @@ myCSD tracker
 A minimalist mobile-first tracker for USM students to see their myCSD points for the current sidang. Activities and settings are stored in Supabase. Settings are private to the signed-in account and follow it across browsers.
 
 Project files
-index.html is the signed-out screen and minimal home screen after sign-in.
-menu.html is the plain menu opened from the home gear.
+index.html is the sign-in screen and minimal home screen after sign-in.
+menu.html is the plain menu opened from the home gear, including data export.
 add-activity.html contains the activity form.
 activities.html lists and deletes activities for the current sidang.
 settings.html contains message style, target, D-Day, sidang, and sign-out controls.
+privacy.html and terms.html are the short legal pages.
 css/style.css contains the black minimal style.
 js/config.js contains app defaults and the Supabase project URL and public anon key settings.
 js/auth.js creates the Supabase browser client and handles Google sign-in, sessions, and sign-out.
 js/settings-store.js loads, migrates, and saves settings through Supabase.
 js/activity-data.js sends activity requests to Supabase without a user_id; database row security controls ownership.
+js/export-data.js reads the signed-in user's data through row security and copies version 1 JSON to the clipboard.
 js/app.js calculates the current sidang total from activities and shows the home message and D-Day.
 js/add-activity.js checks and saves activity form values.
 js/activities-list.js loads and deletes current-sidang activities.
-js/menu.js protects the menu and handles sign-out.
+js/menu.js protects the menu, copies exports, and handles sign-out.
 js/settings.js loads, validates, and saves account settings.
 supabase/schema.sql is the SQL to run manually in Supabase.
 SPEC.md is the original project brief.
@@ -61,7 +63,7 @@ Set Site URL to:
 Add these Redirect URLs:
     http://localhost:8000/**
     https://mycsd.javanmyna.fyi/
-The local wildcard allows the local preview URL, including the temporary total query value. The production entry is the exact home address.
+The local wildcard allows Google sign-in to return to pages served from the local preview.
 
 Before testing, open js/config.js and enter the Supabase project URL and public anon key from your Supabase project API settings. The public anon key is intended for browser use and is protected by the row policies you added.
 
@@ -95,15 +97,29 @@ The project already has the settings table. In Supabase, open SQL Editor, choose
 
 Settings load from the signed-in user's settings row. The first successful load creates that row if needed. If this browser still has older local settings and the account has no row, those values are migrated first. Later changes are saved to Supabase and follow the account.
 
+Export
+From the menu, choose Export my data. The app copies a plain JSON document with version 1, every activity visible to the signed-in account across all sidangs, and that account's settings. There is no import feature.
+
 Short manual test list
 Sign in with your first Google account and add an activity. Confirm the home total includes its points and Activities shows the row.
 Add activities under different sidang names by changing Settings, then confirm the home total and Activities list use only the selected sidang.
 Delete an activity and confirm the browser asks Delete this activity? before removing it.
-Open the home address with ?total=250 to check the temporary message test override.
+Choose Export my data and confirm the clipboard contains JSON with version 1, activities from all sidangs, and settings.
 Sign out, then sign in with a SECOND Google account. Confirm its total is zero or its activity list says No activities yet, and it cannot see the first account's activity.
 Change a setting on one device, sign in to the same account in another browser, and confirm the changed setting follows the account.
+Open Privacy and Terms from the sign-in screen and from Settings. Replace CONTACT EMAIL HERE in privacy.html before launch.
 
-Official setup references
+Prepare Cloudflare Pages deployment
+Push the myCSD repository to GitHub. In the Cloudflare dashboard, open Workers & Pages, choose Create application, choose Pages, then Import an existing Git repository.
+Choose the myCSD repository and its production branch. This is a plain static site: set the build command to exit 0 and the build output directory to the repository root, a period. There is no package installation or build step. Deploy and check that the site opens at its pages.dev address.
+In Pages, add the custom domain mycsd.javanmyna.fyi. Then confirm the production address is allowed in Supabase Authentication URL Configuration and in the Google OAuth client's authorized JavaScript origins.
+Cloudflare's current static HTML guide: https://developers.cloudflare.com/pages/framework-guides/deploy-anything/
+
+GoatCounter
+The GoatCounter script is in each HTML page and sends visits to the existing myna-dev.goatcounter.com site. If you use another GoatCounter site, replace the data-goatcounter endpoint in the HTML pages with that site's count endpoint.
+GoatCounter setup reference: https://www.goatcounter.com/help/start
+
+Official auth setup references
 Supabase Google sign-in: https://supabase.com/docs/guides/auth/social-login/auth-google
 Supabase redirect URLs: https://supabase.com/docs/guides/auth/redirect-urls
 Google Auth Platform setup: https://support.google.com/cloud/answer/15544987

@@ -19,7 +19,7 @@ body {
 .home-page { overflow: hidden; }
 [hidden] { display: none !important; }
 
-.sign-in-view { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; padding: 24px; }
+.sign-in-view { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 4px; padding: 24px; }
 .sign-in-button {
   border: 0;
   padding: 10px 4px;
@@ -32,6 +32,10 @@ body {
 .sign-in-button:focus-visible, .sign-out-item:focus-visible, .plain-action:focus-visible, .home-retry:focus-visible, .page-load-retry:focus-visible, .settings-load-retry:focus-visible { outline: 1px solid #888888; outline-offset: 5px; }
 .sign-in-button:disabled { color: var(--grey); cursor: wait; }
 .sign-in-error { max-width: 360px; margin: 20px 0 0; color: var(--grey); font-size: 0.78rem; line-height: 1.5; text-align: center; }
+.legal-links { display: flex; align-items: center; gap: 16px; }
+.legal-links a { color: #555555; font-size: 0.66rem; line-height: 1.5; text-decoration: none; }
+.legal-links a:hover { color: #999999; }
+.settings-legal-links { margin-top: 24px; }
 
 .gear-link, .close-link {
   position: fixed;
@@ -168,6 +172,7 @@ body {
 .plain-action:hover { color: var(--white); }
 .plain-action:disabled { color: #555555; cursor: wait; }
 .plain-error { min-height: 1.2em; margin: 14px 0 0; color: var(--grey); font-size: 0.78rem; line-height: 1.5; }
+.export-status { margin: -18px 0 0; }
 .form-main, .list-main { margin-top: 94px; margin-bottom: 52px; }
 .plain-title { margin: 0 0 38px; color: var(--white); font-size: 1.2rem; font-weight: 400; letter-spacing: -0.025em; }
 .field-label { display: block; margin: 0 0 11px; color: #888888; font-size: 0.78rem; }
@@ -182,9 +187,12 @@ body {
 .delete-action { flex: none; color: var(--grey); font-size: 0.78rem; }
 .page-load-error { width: min(100% - 48px, 460px); margin: 94px auto 0; color: var(--grey); font-size: 0.8rem; }
 .page-load-retry { width: min(100% - 48px, 460px); margin: 4px auto 0; }
+.legal-main { width: min(100% - 48px, 460px); margin: 94px auto 56px; }
+.legal-copy { color: #999999; font-size: 0.85rem; line-height: 1.65; }
+.legal-copy p { margin: 0 0 18px; }
 
 @media (max-width: 360px) {
   .total-points { font-size: 27vw; }
-  .settings-main, .plain-main { width: min(100% - 36px, 460px); }
+  .settings-main, .plain-main, .legal-main { width: min(100% - 36px, 460px); }
   .settings-load-error, .settings-load-retry, .page-load-error, .page-load-retry { width: min(100% - 36px, 460px); }
 }
