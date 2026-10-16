@@ -130,6 +130,7 @@
       showSignedOut();
       return;
     }
+    window.MYCSD_REFRESH_ON_RETURN(loadHome);
     loadHome();
   }).catch(function () {
     showSignedOut();

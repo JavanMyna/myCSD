@@ -91,6 +91,7 @@
       return;
     }
     document.body.classList.remove("auth-pending");
+    window.MYCSD_REFRESH_ON_RETURN(loadList);
     loadList();
   }).catch(function () {
     window.location.replace("index.html");
