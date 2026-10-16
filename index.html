@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>myCSD tracker</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/config.js" defer></script>
+  <script src="js/settings-store.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body class="home-page">
+  <a class="gear-link" href="settings.html" aria-label="Open settings">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" />
+      <path d="m19.4 15 .05.04 1.03.8-1.5 2.6-1.23-.48a1.5 1.5 0 0 0-1.4.13l-.14.1a1.5 1.5 0 0 0-.65 1.23V21h-3v-1.58a1.5 1.5 0 0 0-.8-1.33l-.14-.07a1.5 1.5 0 0 0-1.38.02l-1.22.64-1.5-2.6 1.1-.8a1.5 1.5 0 0 0 .6-1.25l-.01-.17a1.5 1.5 0 0 0-.8-1.2L6.98 12l1.5-2.6 1.35.5a1.5 1.5 0 0 0 1.37-.15l.14-.1A1.5 1.5 0 0 0 12 8.4V7h3v1.4a1.5 1.5 0 0 0 .8 1.32l.15.08a1.5 1.5 0 0 0 1.37-.02l1.22-.64 1.5 2.6-1.1.8a1.5 1.5 0 0 0-.6 1.25l.01.17a1.5 1.5 0 0 0 .8 1.2Z" />
+    </svg>
+  </a>
+  <p class="dday-label" id="dday-label" aria-label="D-Day countdown"></p>
+  <main class="home-main">
+    <p class="total-points" id="total-points" aria-label="Total myCSD points">—</p>
+    <p class="message-line" id="message-line" aria-live="polite"></p>
+  </main>
+</body>
+</html>

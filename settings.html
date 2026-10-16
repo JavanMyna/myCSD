@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>Settings · myCSD tracker</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/config.js" defer></script>
+  <script src="js/settings-store.js" defer></script>
+  <script src="js/settings.js" defer></script>
+</head>
+<body class="settings-page">
+  <a class="close-link" href="index.html" aria-label="Close settings">×</a>
+  <main class="settings-main">
+    <h1 class="settings-title">Settings</h1>
+
+    <section class="setting-row">
+      <p class="setting-label">Message style</p>
+      <div class="mode-options" role="radiogroup" aria-label="Message style">
+        <label class="mode-option"><input type="radio" name="message-style" value="motivational"><span>Motivational</span></label>
+        <label class="mode-option"><input type="radio" name="message-style" value="harsh"><span>Harsh truth</span></label>
+        <label class="mode-option"><input type="radio" name="message-style" value="off"><span>Off</span></label>
+      </div>
+    </section>
+
+    <section class="setting-row">
+      <label class="setting-label" for="target">Target</label>
+      <input class="plain-input" id="target" type="number" min="1" step="1" inputmode="numeric" required>
+    </section>
+
+    <section class="setting-row">
+      <label class="setting-label" for="dday-preset">D-Day</label>
+      <select class="plain-select" id="dday-preset">
+        <option value="semester1">End of Sem 1 · 7 Feb 2027</option>
+        <option value="semester2">End of Sem 2 · 18 Jul 2027</option>
+        <option value="custom">Custom date</option>
+      </select>
+      <input class="plain-input custom-date" id="dday-custom" type="date" aria-label="Custom D-Day">
+    </section>
+
+    <section class="setting-row">
+      <label class="setting-label" for="sidang">Sidang name</label>
+      <input class="plain-input" id="sidang" type="text" maxlength="40" autocomplete="off">
+    </section>
+
+    <p class="save-state" id="save-state" aria-live="polite"></p>
+  </main>
+</body>
+</html>
