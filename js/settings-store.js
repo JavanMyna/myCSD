@@ -79,6 +79,10 @@
   }
 
   async function save(settings) {
+    var session = await window.MYCSD_AUTH.getSession();
+    var userId = session && session.user && session.user.id;
+    if (!userId) throw new Error("No signed-in user.");
+
     var values = {
       target: Number(settings.target),
       dday: String(settings.dday),
@@ -88,9 +92,17 @@
     };
     var result = await getClient().from("settings")
       .update(values)
+      .eq("user_id", userId)
       .select(COLUMNS)
       .maybeSingle();
-    if (result.error) throw result.error;
+    if (result.error) {
+      console.error("Supabase settings save failed", {
+        message: result.error.message,
+        code: result.error.code,
+        details: result.error.details
+      });
+      throw result.error;
+    }
     if (!result.data) throw new Error("Settings row was not updated.");
     return mapRow(result.data);
   }
