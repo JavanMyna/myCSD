@@ -124,6 +124,11 @@ body {
 }
 .creator-close:hover { color: var(--white); }
 body.dialog-open { overflow: hidden; }
+.creator-greeting {
+  margin: 12px 0 4px;
+  text-align: center;
+  font-size: 0.95rem;
+}
 
 .gear-link, .close-link {
   position: fixed;
