@@ -92,6 +92,18 @@
     return "You're " + shown + "% near your goal.";
   }
 
+  function approximateText(summary) {
+    var unknown = Number(summary.unknown) || 0;
+    var activities = unknown === 1 ? "1 activity" : unknown + " activities";
+    if (summary.unconfirmed && unknown > 0) {
+      return "Approximate — includes unconfirmed activities and " + activities + " with unknown points.";
+    }
+    if (unknown > 0) {
+      return "Approximate — includes " + activities + " with unknown points.";
+    }
+    return "Approximate — includes unconfirmed activities.";
+  }
+
   function setRefreshing(isRefreshing) {
     refreshButton.disabled = isRefreshing;
     refreshButton.textContent = isRefreshing ? "Refreshing…" : "Refresh";
@@ -155,7 +167,8 @@
       );
       messageNode.textContent = sentenceFor(total, settings, countdown.days);
       goalNode.textContent = goalSentence(total, settings);
-      approximateNode.hidden = !summary.unconfirmed;
+      approximateNode.textContent = approximateText(summary);
+      approximateNode.hidden = !summary.unconfirmed && !(summary.unknown > 0);
     } catch (error) {
       messageNode.textContent = "Couldn't load your total. Try again.";
       retryButton.hidden = false;

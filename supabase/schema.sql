@@ -4,7 +4,7 @@ create table if not exists public.activities (
   user_id uuid not null default auth.uid() references auth.users (id),
   sidang text,
   name text not null check (char_length(name) between 1 and 100),
-  points integer not null check (points between 0 and 1000),
+  points integer check (points is null or points between 0 and 1000),
   level text not null check (level in ('club', 'university', 'national', 'webinars', 'misc', 'unsure')),
   confirmed boolean not null default false,
   date date,

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>Import data · myCSD tracker</title>
+  <link rel="icon" href="favicon/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
+  <link rel="manifest" href="favicon/site.webmanifest">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0/dist/umd/supabase.min.js" integrity="sha384-Sm2s7OXxsAMTyJ4iIyRBgVpeGUvMPk2lRQnnZhE78Wej7oggIoolKt+SCt0XJbUB" crossorigin="anonymous" defer></script>
+  <script src="js/config.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/data.js" defer></script>
+  <script src="js/signature.js" defer></script>
+  <script src="js/validation.js" defer></script>
+  <script src="js/settings-store.js" defer></script>
+  <script src="js/activity-data.js" defer></script>
+  <script src="js/import-data.js" defer></script>
+  <script src="js/import.js" defer></script>
+  <script data-goatcounter="https://myna-dev.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</head>
+<body class="plain-page auth-pending">
+  <a class="close-link" href="menu.html" aria-label="Close import">×</a>
+  <main class="plain-main import-main" id="import-main" hidden>
+    <h1 class="plain-title">Import data</h1>
+    <p class="import-intro">Paste the JSON from an export, or choose the .json file. Nothing is saved until you confirm.</p>
+
+    <label class="field-label" for="import-text">Export JSON</label>
+    <textarea class="plain-textarea" id="import-text" rows="8" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+
+    <label class="field-label field-spaced" for="import-file">Or choose a .json file</label>
+    <input class="plain-file" id="import-file" type="file" accept=".json,application/json">
+
+    <p class="plain-error" id="import-error" aria-live="polite"></p>
+    <button class="plain-action import-preview" id="import-preview" type="button">Preview</button>
+
+    <section class="import-plan" id="import-plan" aria-labelledby="import-plan-title" hidden>
+      <h2 class="import-plan-title" id="import-plan-title">Preview</h2>
+      <p class="import-counts" id="import-counts"></p>
+      <p class="import-legacy" id="import-legacy" hidden></p>
+      <ul class="import-invalid" id="import-invalid" aria-label="Invalid rows"></ul>
+
+      <label class="check-field field-spaced" for="import-settings">
+        <input type="checkbox" id="import-settings">
+        <span>Also import settings</span>
+      </label>
+      <p class="field-hint" id="import-settings-note" hidden></p>
+      <button class="plain-action import-confirm" id="import-confirm" type="button" hidden>Import</button>
+    </section>
+
+    <p class="import-result" id="import-result" aria-live="polite"></p>
+    <nav class="legal-links import-links" aria-label="After import">
+      <a href="activities.html">Activities</a>
+      <a href="index.html">Home</a>
+    </nav>
+  </main>
+</body>
+</html>

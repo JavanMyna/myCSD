@@ -39,11 +39,18 @@
     var details = document.createElement("div");
     details.className = "activity-details";
     addText(details, "activity-name", activity.name);
-    addText(
-      details,
-      "activity-meta",
-      activity.points + " points · " + levelLabel(activity.level) + " · " + (activity.date || "No date")
-    );
+
+    var levelText = levelLabel(activity.level);
+    var dateText = activity.date || "No date";
+    var meta = document.createElement("span");
+    meta.className = "activity-meta";
+    if (activity.points === null) {
+      meta.textContent = "? points · " + levelText + " · " + dateText;
+      meta.setAttribute("aria-label", "Points unknown · " + levelText + " · " + dateText);
+    } else {
+      meta.textContent = activity.points + " points · " + levelText + " · " + dateText;
+    }
+    details.appendChild(meta);
 
     var badge = document.createElement("span");
     badge.className = "confirm-badge " + (activity.confirmed ? "is-confirmed" : "is-unconfirmed");

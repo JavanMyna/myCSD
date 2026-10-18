@@ -18,12 +18,6 @@
   var savePending = null;
   var saving = false;
 
-  function validDate(value) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-    var date = new Date(value + "T00:00:00Z");
-    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
-  }
-
   function fillSettings(settings) {
     targetInput.value = String(settings.target);
     sidangInput.value = settings.sidang;
@@ -61,27 +55,18 @@
   }
 
   function collectSettings() {
-    var target = Number(targetInput.value);
-    var date = selectedDate();
-    var sidang = sidangInput.value.trim();
     var mode = document.querySelector('input[name="message-style"]:checked');
-    if (!Number.isInteger(target) || target < 1 || target > 5000) {
-      saveState.textContent = "Target must be a whole number from 1 to 5000.";
+    var checked = window.MYCSD_VALIDATE.settings({
+      target: Number(targetInput.value),
+      dday: selectedDate(),
+      sidang: sidangInput.value,
+      messageStyle: mode ? mode.value : ""
+    });
+    if (!checked.ok) {
+      saveState.textContent = checked.message;
       return null;
     }
-    if (!validDate(date)) {
-      saveState.textContent = "Choose a valid D-Day.";
-      return null;
-    }
-    if (sidang.length < 1 || sidang.length > 20) {
-      saveState.textContent = "Sidang name must be 1 to 20 characters.";
-      return null;
-    }
-    if (!mode || ["motivational", "harsh", "off"].indexOf(mode.value) < 0) {
-      saveState.textContent = "Choose a message style.";
-      return null;
-    }
-    return { target: target, dday: date, sidang: sidang, messageStyle: mode.value };
+    return checked.value;
   }
 
   async function saveNext() {

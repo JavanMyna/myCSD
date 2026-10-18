@@ -9,7 +9,9 @@
   var LOCAL_SETTINGS_KEY = "myCSD.demo.settings.v1";
   var ACTIVITY_COLUMNS = "id, sidang, name, points, level, date, confirmed, created_at";
   var SETTINGS_COLUMNS = "target, dday, sidang, message_style, updated_at";
-  var EXPORT_VERSION = 2;
+  var EXPORT_VERSION = 3;
+  var PAGE_SIZE = 1000;
+  var IMPORT_BATCH_SIZE = 500;
   var MESSAGE_STYLES = ["motivational", "harsh", "off"];
 
   function readJson(key, fallback) {
@@ -209,7 +211,7 @@
       id: row.id,
       sidang: row.sidang,
       name: row.name,
-      points: Number(row.points),
+      points: row.points === null || row.points === undefined ? null : Number(row.points),
       level: row.level,
       date: row.date,
       confirmed: row.confirmed === true,
@@ -222,6 +224,30 @@
       return window.crypto.randomUUID();
     }
     return "local-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+  }
+
+  async function listAllRemote() {
+    var rows = [];
+    var from = 0;
+    while (true) {
+      var result = await authClient().from("activities")
+        .select(ACTIVITY_COLUMNS)
+        .order("date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (result.error) throw result.error;
+      var page = result.data || [];
+      rows = rows.concat(page);
+      if (page.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
+    }
+    return rows;
+  }
+
+  async function listAll() {
+    if (isGuest()) return sortRows(localRows()).map(normaliseActivity);
+    return (await listAllRemote()).map(normaliseActivity);
   }
 
   async function listForSidang(sidang) {
@@ -252,7 +278,10 @@
         }, 0),
         unconfirmed: rows.some(function (row) {
           return row.confirmed !== true;
-        })
+        }),
+        unknown: rows.filter(function (row) {
+          return row.points === null || row.points === undefined;
+        }).length
       };
     }
 
@@ -268,7 +297,10 @@
       }, 0),
       unconfirmed: data.some(function (row) {
         return row.confirmed !== true;
-      })
+      }),
+      unknown: data.filter(function (row) {
+        return row.points === null || row.points === undefined;
+      }).length
     };
   }
 
@@ -315,6 +347,60 @@
     if (result.error) throw result.error;
   }
 
+  async function addMany(activities) {
+    var rows = Array.isArray(activities) ? activities : [];
+    if (rows.length === 0) return { saved: 0, failed: 0, error: "" };
+
+    var values = rows.map(function (activity) {
+      return {
+        sidang: activity.sidang,
+        name: activity.name,
+        points: activity.points === null ? null : Number(activity.points),
+        level: activity.level,
+        date: activity.date,
+        confirmed: activity.confirmed === true
+      };
+    });
+
+    if (isGuest()) {
+      var stored = localRows();
+      var now = new Date().toISOString();
+      var added = values.map(function (activity) {
+        return Object.assign({ id: newId(), created_at: now }, activity);
+      });
+      try {
+        writeJson(LOCAL_ACTIVITIES_KEY, stored.concat(added));
+      } catch (error) {
+        return { saved: 0, failed: added.length, error: "Browser storage is full." };
+      }
+      return { saved: added.length, failed: 0, error: "" };
+    }
+
+    var saved = 0;
+    for (var i = 0; i < values.length; i += IMPORT_BATCH_SIZE) {
+      var chunk = values.slice(i, i + IMPORT_BATCH_SIZE);
+      var result;
+      try {
+        result = await authClient().from("activities").insert(chunk);
+      } catch (error) {
+        return {
+          saved: saved,
+          failed: values.length - saved,
+          error: error && error.message ? error.message : "The network request failed."
+        };
+      }
+      if (result.error) {
+        return {
+          saved: saved,
+          failed: values.length - saved,
+          error: result.error.message || "The database rejected the batch."
+        };
+      }
+      saved += chunk.length;
+    }
+    return { saved: saved, failed: 0, error: "" };
+  }
+
   async function update(id, activity) {
     var values = {
       name: activity.name,
@@ -359,31 +445,35 @@
     if (result.error) throw result.error;
   }
 
+  function exportSettings(row) {
+    return {
+      target: Number(row.target),
+      dday: row.dday,
+      sidang: row.sidang,
+      message_style: row.message_style,
+      updated_at: String(row.updated_at || "")
+    };
+  }
+
   async function exportAll() {
     if (isGuest()) {
       return {
         version: EXPORT_VERSION,
         exported_at: new Date().toISOString(),
-        activities: sortRows(localRows()).map(normaliseActivity),
-        settings: localSettings()
+        activities: await listAll(),
+        settings: exportSettings(localSettings())
       };
     }
 
-    var activityResult = await authClient().from("activities")
-      .select("*")
-      .order("date", { ascending: false })
-      .order("created_at", { ascending: false });
-    if (activityResult.error) throw activityResult.error;
-
-    var settingsResult = await authClient().from("settings").select("*").maybeSingle();
+    var settingsResult = await authClient().from("settings").select(SETTINGS_COLUMNS).maybeSingle();
     if (settingsResult.error) throw settingsResult.error;
     if (!settingsResult.data) throw new Error("Settings row is missing.");
 
     return {
       version: EXPORT_VERSION,
       exported_at: new Date().toISOString(),
-      activities: activityResult.data || [],
-      settings: settingsResult.data
+      activities: await listAll(),
+      settings: exportSettings(settingsResult.data)
     };
   }
 
@@ -446,9 +536,11 @@
     settings: { load: loadSettings, save: saveSettings },
     activities: {
       listForSidang: listForSidang,
+      listAll: listAll,
       summaryForSidang: summaryForSidang,
       getById: getById,
       add: add,
+      addMany: addMany,
       update: update,
       remove: remove
     },
