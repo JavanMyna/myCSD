@@ -10,6 +10,7 @@ activities.html lists and deletes activities for the current sidang.
 settings.html contains message style, target, D-Day, sidang, and sign-out controls.
 privacy.html and terms.html are the short legal pages.
 css/style.css contains the black minimal style.
+favicon/ contains the browser tab icon, Apple touch icon, Android home-screen icons, and web manifest. Each HTML page links to them.
 js/config.js contains app defaults and the Supabase project URL and public anon key settings.
 js/auth.js creates the Supabase browser client and handles Google sign-in, sessions, and sign-out.
 js/settings-store.js loads, migrates, and saves settings through Supabase.
