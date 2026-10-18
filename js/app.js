@@ -1,15 +1,20 @@
-// Home display loads the signed-in user's settings and current-sidang total.
+// Home display loads settings and the current-sidang total from the active data backend.
 (function () {
   "use strict";
 
   var signInView = document.getElementById("sign-in-view");
   var signInButton = document.getElementById("google-sign-in");
+  var demoButton = document.getElementById("demo-start");
   var signInError = document.getElementById("sign-in-error");
   var homeView = document.getElementById("home-view");
   var totalNode = document.getElementById("total-points");
   var messageNode = document.getElementById("message-line");
+  var goalNode = document.getElementById("goal-line");
+  var approximateNode = document.getElementById("approximate-note");
   var ddayNode = document.getElementById("dday-label");
   var retryButton = document.getElementById("home-retry");
+  var refreshButton = document.getElementById("home-refresh");
+  var loadingHome = false;
 
   function dayNumber(value) {
     var parts = String(value).split("-").map(Number);
@@ -70,6 +75,31 @@
     return choose(pools);
   }
 
+  function goalSentence(total, settings) {
+    var target = Number(settings.target);
+    if (!settings.target || !Number.isFinite(target) || target <= 0) return "";
+
+    var ratio = total / target;
+    var percent = Math.round(ratio * 100);
+    if (ratio >= 1) {
+      if (settings.messageStyle === "off") return percent + "% of target.";
+      return "You're at " + percent + "% of your target.";
+    }
+
+    var shown = total > 0 && percent === 0 ? "under 1" : String(percent);
+    if (settings.messageStyle === "harsh") return "You're " + shown + "% of the way there.";
+    if (settings.messageStyle === "off") return shown + "% of target.";
+    return "You're " + shown + "% near your goal.";
+  }
+
+  function setRefreshing(isRefreshing) {
+    refreshButton.disabled = isRefreshing;
+    refreshButton.textContent = isRefreshing ? "Refreshing…" : "Refresh";
+    refreshButton.setAttribute("aria-busy", isRefreshing ? "true" : "false");
+    if (isRefreshing) homeView.setAttribute("aria-busy", "true");
+    else homeView.removeAttribute("aria-busy");
+  }
+
   function showSignedOut() {
     signInView.hidden = false;
     homeView.hidden = true;
@@ -80,14 +110,24 @@
     homeView.hidden = false;
   }
 
-  async function loadHome() {
+  function resetHome() {
     retryButton.hidden = true;
     retryButton.disabled = true;
     totalNode.textContent = "—";
     totalNode.classList.add("total-loading");
+    totalNode.setAttribute("aria-label", "Loading total myCSD points");
     ddayNode.textContent = "";
     messageNode.textContent = "";
+    goalNode.textContent = "";
+    approximateNode.hidden = true;
     showHome();
+  }
+
+  async function loadHome() {
+    if (loadingHome) return;
+    loadingHome = true;
+    setRefreshing(true);
+    resetHome();
 
     var settings;
     try {
@@ -96,19 +136,40 @@
       messageNode.textContent = "Couldn't load settings.";
       retryButton.hidden = false;
       retryButton.disabled = false;
+      setRefreshing(false);
+      loadingHome = false;
       return;
     }
 
     var countdown = ddayInfo(settings.dday);
     ddayNode.textContent = countdown.label;
+
     try {
-      var total = await window.MYCSD_ACTIVITY_DATA.pointsForSidang(settings.sidang);
+      var summary = await window.MYCSD_ACTIVITY_DATA.summaryForSidang(settings.sidang);
+      var total = summary.points;
       totalNode.textContent = String(total);
       totalNode.classList.remove("total-loading");
+      totalNode.setAttribute(
+        "aria-label",
+        settings.target ? total + " of " + settings.target + " myCSD points" : total + " myCSD points"
+      );
       messageNode.textContent = sentenceFor(total, settings, countdown.days);
+      goalNode.textContent = goalSentence(total, settings);
+      approximateNode.hidden = !summary.unconfirmed;
     } catch (error) {
       messageNode.textContent = "Couldn't load your total. Try again.";
+      retryButton.hidden = false;
+      retryButton.disabled = false;
     }
+
+    setRefreshing(false);
+    loadingHome = false;
+  }
+
+  function startForGuest() {
+    window.MYCSD_DATA.mountDemoBanner();
+    window.MYCSD_REFRESH_ON_RETURN(loadHome);
+    loadHome();
   }
 
   signInButton.addEventListener("click", async function () {
@@ -123,16 +184,36 @@
     }
   });
 
+  demoButton.addEventListener("click", function () {
+    try {
+      window.MYCSD_DATA.enterGuest();
+      window.location.reload();
+    } catch (error) {
+      signInError.textContent = "Demo mode needs browser storage. Check your browser settings.";
+      signInError.hidden = false;
+    }
+  });
+
   retryButton.addEventListener("click", loadHome);
+  refreshButton.addEventListener("click", loadHome);
 
   window.MYCSD_AUTH.getSession().then(function (session) {
-    if (!session) {
-      showSignedOut();
+    if (session) {
+      window.MYCSD_DATA.leaveGuest();
+      window.MYCSD_REFRESH_ON_RETURN(loadHome);
+      loadHome();
       return;
     }
-    window.MYCSD_REFRESH_ON_RETURN(loadHome);
-    loadHome();
+    if (window.MYCSD_DATA.isGuest()) {
+      startForGuest();
+      return;
+    }
+    showSignedOut();
   }).catch(function () {
+    if (window.MYCSD_DATA.isGuest()) {
+      startForGuest();
+      return;
+    }
     showSignedOut();
   });
 }());

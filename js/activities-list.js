@@ -1,4 +1,4 @@
-// Load and delete activities for the sidang selected in the user's settings row.
+// Load, edit, and delete activities for the sidang selected in the user's settings.
 (function () {
   "use strict";
 
@@ -8,12 +8,25 @@
   var errorLine = document.getElementById("list-error");
   var pageError = document.getElementById("page-load-error");
   var retryButton = document.getElementById("page-load-retry");
+  var LEVEL_LABELS = {
+    club: "Club",
+    university: "University",
+    national: "National",
+    webinars: "Webinars",
+    misc: "Misc",
+    unsure: "Unsure",
+    college: "College (legacy)"
+  };
 
   function addText(parent, className, value) {
     var node = document.createElement("span");
     node.className = className;
     node.textContent = String(value);
     parent.appendChild(node);
+  }
+
+  function levelLabel(value) {
+    return LEVEL_LABELS[value] || String(value);
   }
 
   function updateEmpty() {
@@ -26,13 +39,33 @@
     var details = document.createElement("div");
     details.className = "activity-details";
     addText(details, "activity-name", activity.name);
-    addText(details, "activity-meta", activity.points + " points · " + activity.level + " · " + activity.date);
+    addText(
+      details,
+      "activity-meta",
+      activity.points + " points · " + levelLabel(activity.level) + " · " + (activity.date || "No date")
+    );
+
+    var badge = document.createElement("span");
+    badge.className = "confirm-badge " + (activity.confirmed ? "is-confirmed" : "is-unconfirmed");
+    badge.textContent = activity.confirmed ? "Confirmed" : "Unconfirmed";
+    details.appendChild(badge);
     row.appendChild(details);
+
+    var actions = document.createElement("div");
+    actions.className = "activity-actions";
+
+    var editLink = document.createElement("a");
+    editLink.className = "plain-action edit-action";
+    editLink.href = "add-activity.html?edit=" + encodeURIComponent(activity.id);
+    editLink.textContent = "Edit";
+    editLink.setAttribute("aria-label", "Edit " + activity.name);
+    actions.appendChild(editLink);
 
     var removeButton = document.createElement("button");
     removeButton.className = "plain-action delete-action";
     removeButton.type = "button";
     removeButton.textContent = "Delete";
+    removeButton.setAttribute("aria-label", "Delete " + activity.name);
     removeButton.addEventListener("click", async function () {
       if (!window.confirm("Delete this activity?")) return;
       removeButton.disabled = true;
@@ -46,7 +79,8 @@
         removeButton.disabled = false;
       }
     });
-    row.appendChild(removeButton);
+    actions.appendChild(removeButton);
+    row.appendChild(actions);
     return row;
   }
 
@@ -84,16 +118,22 @@
     }
   }
 
-  retryButton.addEventListener("click", loadList);
-  window.MYCSD_AUTH.getSession().then(function (session) {
-    if (!session) {
+  function start(session) {
+    if (session) {
+      window.MYCSD_DATA.leaveGuest();
+    } else if (!window.MYCSD_DATA.isGuest()) {
       window.location.replace("index.html");
       return;
+    } else {
+      window.MYCSD_DATA.mountDemoBanner();
     }
     document.body.classList.remove("auth-pending");
     window.MYCSD_REFRESH_ON_RETURN(loadList);
     loadList();
-  }).catch(function () {
-    window.location.replace("index.html");
+  }
+
+  retryButton.addEventListener("click", loadList);
+  window.MYCSD_AUTH.getSession().then(start).catch(function () {
+    start(null);
   });
 }());

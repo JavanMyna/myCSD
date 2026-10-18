@@ -1,55 +1,18 @@
-// Supabase activity requests live here. Row ownership is enforced by database RLS.
+// Activity API for pages. js/data.js selects Supabase or demo localStorage.
 (function () {
   "use strict";
 
-  function client() {
-    var value = window.MYCSD_AUTH && window.MYCSD_AUTH.getClient();
-    if (!value) throw new Error("Supabase is not configured.");
-    return value;
-  }
-
-  async function listForSidang(sidang) {
-    var result = await client()
-      .from("activities")
-      .select("id, name, points, level, date, created_at")
-      .eq("sidang", sidang)
-      .order("date", { ascending: false })
-      .order("created_at", { ascending: false });
-    if (result.error) throw result.error;
-    return result.data || [];
-  }
-
-  async function pointsForSidang(sidang) {
-    var result = await client()
-      .from("activities")
-      .select("points")
-      .eq("sidang", sidang);
-    if (result.error) throw result.error;
-    return (result.data || []).reduce(function (sum, activity) {
-      return sum + Number(activity.points || 0);
-    }, 0);
-  }
-
-  async function add(activity) {
-    var result = await client().from("activities").insert({
-      sidang: activity.sidang,
-      name: activity.name,
-      points: activity.points,
-      level: activity.level,
-      date: activity.date
-    });
-    if (result.error) throw result.error;
-  }
-
-  async function remove(id) {
-    var result = await client().from("activities").delete().eq("id", id);
-    if (result.error) throw result.error;
+  function data() {
+    if (!window.MYCSD_DATA) throw new Error("Data layer is not loaded.");
+    return window.MYCSD_DATA.activities;
   }
 
   window.MYCSD_ACTIVITY_DATA = {
-    listForSidang: listForSidang,
-    pointsForSidang: pointsForSidang,
-    add: add,
-    remove: remove
+    listForSidang: function (sidang) { return data().listForSidang(sidang); },
+    summaryForSidang: function (sidang) { return data().summaryForSidang(sidang); },
+    getById: function (id) { return data().getById(id); },
+    add: function (activity) { return data().add(activity); },
+    update: function (id, activity) { return data().update(id, activity); },
+    remove: function (id) { return data().remove(id); }
   };
 }());

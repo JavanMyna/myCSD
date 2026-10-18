@@ -1,29 +1,14 @@
-// Export current-user data through RLS and copy it as plain JSON.
+// Export current-user or demo data as plain JSON on the clipboard.
 (function () {
   "use strict";
 
   async function copyAll() {
-    var client = window.MYCSD_AUTH.getClient();
-    if (!client || !navigator.clipboard || !navigator.clipboard.writeText) {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
       throw new Error("Clipboard is unavailable.");
     }
+    if (!window.MYCSD_DATA) throw new Error("Data layer is not loaded.");
 
-    var activityResult = await client.from("activities")
-      .select("*")
-      .order("date", { ascending: false })
-      .order("created_at", { ascending: false });
-    if (activityResult.error) throw activityResult.error;
-
-    var settingsResult = await client.from("settings").select("*").maybeSingle();
-    if (settingsResult.error) throw settingsResult.error;
-    if (!settingsResult.data) throw new Error("Settings row is missing.");
-
-    var exportData = {
-      version: 1,
-      exported_at: new Date().toISOString(),
-      activities: activityResult.data || [],
-      settings: settingsResult.data
-    };
+    var exportData = await window.MYCSD_DATA.exportAll();
     await navigator.clipboard.writeText(JSON.stringify(exportData, null, 2));
   }
 

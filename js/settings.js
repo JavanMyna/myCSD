@@ -126,8 +126,14 @@
   signOutButton.addEventListener("click", async function () {
     signOutButton.disabled = true;
     signOutError.hidden = true;
+    if (window.MYCSD_DATA.isGuest()) {
+      window.MYCSD_DATA.leaveGuest();
+      window.location.replace("index.html");
+      return;
+    }
     try {
       await window.MYCSD_AUTH.signOut();
+      window.MYCSD_DATA.leaveGuest();
       window.location.replace("index.html");
     } catch (error) {
       signOutButton.disabled = false;
@@ -136,17 +142,24 @@
     }
   });
 
-  window.MYCSD_AUTH.getSession().then(function (session) {
-    if (!session) {
+  function start(session) {
+    if (session) {
+      window.MYCSD_DATA.leaveGuest();
+    } else if (!window.MYCSD_DATA.isGuest()) {
       window.location.replace("index.html");
       return;
+    } else {
+      window.MYCSD_DATA.mountDemoBanner();
     }
+    signOutButton.textContent = window.MYCSD_DATA.isGuest() ? "Exit demo" : "Sign out";
     document.body.classList.remove("auth-pending");
     window.MYCSD_REFRESH_ON_RETURN(function () {
       if (!saving && !savePending) loadSettings();
     });
     loadSettings();
-  }).catch(function () {
-    window.location.replace("index.html");
+  }
+
+  window.MYCSD_AUTH.getSession().then(start).catch(function () {
+    start(null);
   });
 }());

@@ -5,7 +5,8 @@ create table if not exists public.activities (
   sidang text,
   name text not null check (char_length(name) between 1 and 100),
   points integer not null check (points between 0 and 1000),
-  level text not null check (level in ('college', 'club', 'university', 'national')),
+  level text not null check (level in ('club', 'university', 'national', 'webinars', 'misc', 'unsure')),
+  confirmed boolean not null default false,
   date date,
   created_at timestamptz not null default now()
 );
@@ -98,7 +99,6 @@ create policy settings_delete_own
 -- How to run and check it
 -- For the first setup, open SQL Editor, create a new query, paste this whole file,
 -- and click Run. This app does not run SQL against your project.
--- For an existing setup, run only the DO block above the activity index to add
--- the two new settings checks. See README.md for the exact block to run.
+-- For an existing setup, run the separate upgrade block provided with this release.
 -- To confirm row security, open Table Editor, select activities, then settings,
 -- and check that RLS is enabled for each table.

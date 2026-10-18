@@ -13,8 +13,9 @@
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0/dist/umd/supabase.min.js" integrity="sha384-Sm2s7OXxsAMTyJ4iIyRBgVpeGUvMPk2lRQnnZhE78Wej7oggIoolKt+SCt0XJbUB" crossorigin="anonymous" defer></script>
   <script src="js/config.js" defer></script>
-  <script src="js/settings-store.js" defer></script>
   <script src="js/auth.js" defer></script>
+  <script src="js/data.js" defer></script>
+  <script src="js/settings-store.js" defer></script>
   <script src="js/activity-data.js" defer></script>
   <script src="js/refresh-on-return.js" defer></script>
   <script src="js/app.js" defer></script>
@@ -23,6 +24,7 @@
 <body class="home-page">
   <main class="sign-in-view" id="sign-in-view" hidden>
     <button class="sign-in-button" id="google-sign-in" type="button">Continue with Google</button>
+    <button class="demo-start" id="demo-start" type="button">Try demo — saved on this device only</button>
     <p class="sign-in-error" id="sign-in-error" aria-live="polite" hidden></p>
     <nav class="legal-links" aria-label="Legal information">
       <a href="privacy.html">Privacy</a>
@@ -32,16 +34,21 @@
 
   <section class="home-view" id="home-view" aria-label="myCSD points" hidden>
     <a class="gear-link" href="menu.html" aria-label="Open menu">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 8.25a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Z" />
-        <path d="m19.4 15 .05.04 1.03.8-1.5 2.6-1.23-.48a1.5 1.5 0 0 0-1.4.13l-.14.1a1.5 1.5 0 0 0-.65 1.23V21h-3v-1.58a1.5 1.5 0 0 0-.8-1.33l-.14-.07a1.5 1.5 0 0 0-1.38.02l-1.22.64-1.5-2.6 1.1-.8a1.5 1.5 0 0 0 .6-1.25l-.01-.17a1.5 1.5 0 0 0-.8-1.2L6.98 12l1.5-2.6 1.35.5a1.5 1.5 0 0 0 1.37-.15l.14-.1A1.5 1.5 0 0 0 12 8.4V7h3v1.4a1.5 1.5 0 0 0 .8 1.32l.15.08a1.5 1.5 0 0 0 1.37-.02l1.22-.64 1.5 2.6-1.1.8a1.5 1.5 0 0 0-.6 1.25l.01.17a1.5 1.5 0 0 0 .8 1.2Z" />
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="3.25" />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.7 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.7a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.1 4.7a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.3 9c.2.48.62.87 1.13 1.03H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z" />
       </svg>
     </a>
     <p class="dday-label" id="dday-label" aria-label="D-Day countdown"></p>
+    <button class="home-refresh" id="home-refresh" type="button" aria-label="Refresh points and D-Day">Refresh</button>
     <main class="home-main">
       <p class="total-points total-loading" id="total-points" aria-label="Total myCSD points">—</p>
-      <p class="message-line" id="message-line" aria-live="polite"></p>
-      <button class="home-retry" id="home-retry" type="button" hidden>Retry</button>
+      <div class="home-copy">
+        <p class="message-line" id="message-line" aria-live="polite"></p>
+        <p class="goal-line" id="goal-line"></p>
+        <p class="approximate-note" id="approximate-note" hidden>Approximate — includes unconfirmed activities.</p>
+        <button class="home-retry" id="home-retry" type="button" hidden>Retry</button>
+      </div>
     </main>
   </section>
 </body>
