@@ -4,7 +4,7 @@
 
   var MAX_BYTES = 1024 * 1024;
   var MAX_ROWS = 2000;
-  var SUPPORTED_VERSIONS = [1, 2, 3];
+  var SUPPORTED_VERSIONS = [1, 2, 3, 4];
 
   function importError(message) {
     var error = new Error(message);
@@ -36,7 +36,7 @@
       var shown = typeof data.version === "number" || typeof data.version === "string"
         ? String(data.version).slice(0, 20)
         : "unknown";
-      throw importError("Unsupported export version " + shown + ". This app imports versions 1, 2, and 3.");
+      throw importError("Unsupported export version " + shown + ". This app imports versions 1, 2, 3, and 4.");
     }
     if (!Array.isArray(data.activities)) {
       throw importError("The export has no activities list.");

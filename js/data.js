@@ -7,9 +7,10 @@
   var LEGACY_SETTINGS_KEY = "myCSDSettings";
   var LOCAL_ACTIVITIES_KEY = "myCSD.demo.activities.v1";
   var LOCAL_SETTINGS_KEY = "myCSD.demo.settings.v1";
+  var LOCAL_TICKS_KEY = "mycsd.v1.ticks";
   var ACTIVITY_COLUMNS = "id, sidang, name, points, level, date, confirmed, created_at";
   var SETTINGS_COLUMNS = "target, dday, sidang, message_style, updated_at";
-  var EXPORT_VERSION = 3;
+  var EXPORT_VERSION = 4;
   var PAGE_SIZE = 1000;
   var IMPORT_BATCH_SIZE = 500;
   var MESSAGE_STYLES = ["motivational", "harsh", "off"];
@@ -455,13 +456,37 @@
     };
   }
 
+  function localRegistrations() {
+    var ticks = readJson(LOCAL_TICKS_KEY, {});
+    if (!ticks || typeof ticks !== "object" || Array.isArray(ticks)) return [];
+    return Object.keys(ticks).sort();
+  }
+
+  async function listRegistrations() {
+    var ids = [];
+    var from = 0;
+    while (true) {
+      var result = await authClient().from("event_registrations")
+        .select("event_id")
+        .order("event_id", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (result.error) throw result.error;
+      var page = result.data || [];
+      ids = ids.concat(page.map(function (row) { return row.event_id; }));
+      if (page.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
+    }
+    return ids;
+  }
+
   async function exportAll() {
     if (isGuest()) {
       return {
         version: EXPORT_VERSION,
         exported_at: new Date().toISOString(),
         activities: await listAll(),
-        settings: exportSettings(localSettings())
+        settings: exportSettings(localSettings()),
+        event_registrations: localRegistrations()
       };
     }
 
@@ -473,7 +498,8 @@
       version: EXPORT_VERSION,
       exported_at: new Date().toISOString(),
       activities: await listAll(),
-      settings: exportSettings(settingsResult.data)
+      settings: exportSettings(settingsResult.data),
+      event_registrations: await listRegistrations()
     };
   }
 
