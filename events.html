@@ -30,6 +30,9 @@ nav{display:flex;gap:4px;flex-wrap:wrap}
 nav button{background:none;border:0;border-bottom:2px solid transparent;padding:6px 8px;font:13px var(--mono);color:var(--muted);cursor:pointer}
 nav button[aria-current="page"]{color:var(--text);border-bottom-color:var(--amber)}
 nav button:hover{color:var(--text)}
+.account{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font:12px var(--mono);color:var(--muted)}
+.account .who{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.account .err{color:var(--warn);max-width:260px}
 
 main{padding-top:14px;padding-bottom:28px;min-height:60vh}
 .hidden{display:none!important}
@@ -148,12 +151,17 @@ footer .mark{color:var(--amber)}
 }
 @media (prefers-reduced-motion:no-preference){ .chip,.btn,.day{transition:background-color .12s,color .12s,border-color .12s} }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.98.0/dist/umd/supabase.min.js" integrity="sha384-Sm2s7OXxsAMTyJ4iIyRBgVpeGUvMPk2lRQnnZhE78Wej7oggIoolKt+SCt0XJbUB" crossorigin="anonymous" defer></script>
+<script src="js/config.js" defer></script>
+<script src="js/auth.js" defer></script>
+<script src="js/event-registrations.js" defer></script>
 </head>
 <body>
 <header>
  <div class="wrap">
   <h1 class="brand"><span class="mark">&lt;.</span> myCSD events</h1>
   <nav aria-label="Sections" id="nav"></nav>
+  <div class="account" id="account"></div>
  </div>
 </header>
 <main class="wrap" id="main"><noscript><p class="note">This page needs JavaScript switched on to show the events.</p></noscript></main>
@@ -227,9 +235,20 @@ function store(key, val){
 }
 const DEFAULTS = {layout:'auto', campus:'induk', showNoCsd:false};
 let settings = Object.assign({}, DEFAULTS, store('mycsd.v1.settings') || {});
-let ticks = store('mycsd.v1.ticks') || {};
+const TICKS_KEY = 'mycsd.v1.ticks';
+function readLocalTicks(){ const saved = store(TICKS_KEY); return saved && typeof saved === 'object' ? saved : {}; }
+function saveLocalTicks(){ return store(TICKS_KEY, ticks) !== null; }
+function clearLocalTicks(){
+  try { localStorage.removeItem(TICKS_KEY); }
+  catch (e) { storageOK = false; }
+}
+function ticksFromSet(set){ const next = {}; set.forEach(id => { next[id] = 1; }); return next; }
+let ticks = readLocalTicks();
+let account = null;
+let tickError = '';
+let authError = '';
+let clearing = false;
 function saveSettings(){ store('mycsd.v1.settings', settings); }
-function saveTicks(){ store('mycsd.v1.ticks', ticks); }
 
 /* ---------- state ---------- */
 const S = {tab:'events', q:'', cat:'all', fOpen:false, regOnly:false, weekOnly:false, org:'', day:null, weekOff:0, lastFocus:null};
@@ -317,12 +336,106 @@ function visibleBase(now){
     (!S.org || it.org === S.org));
 }
 
+/* ---------- registered ticks: this browser when signed out, the account when signed in ---------- */
+async function refreshTicks(){
+  if (account){
+    if (!window.MYCSD_EVENT_REGISTRATIONS){
+      ticks = {};
+      tickError = 'Could not reach tick storage. Reload the page.';
+      render();
+      return;
+    }
+
+    const api = window.MYCSD_EVENT_REGISTRATIONS;
+    const local = readLocalTicks();
+    const localIds = Object.keys(local);
+    let uploadFailed = false;
+
+    if (localIds.length){
+      const results = await Promise.allSettled(localIds.map(id => api.setRegistered(id, true)));
+      uploadFailed = results.some(result => result.status === 'rejected');
+      results.forEach(result => { if (result.status === 'rejected') console.error(result.reason); });
+      if (!uploadFailed) clearLocalTicks();
+    }
+
+    try {
+      ticks = ticksFromSet(await api.loadRegistered());
+      if (uploadFailed){
+        Object.keys(local).forEach(id => { ticks[id] = 1; });
+        tickError = 'Some ticks are still only in this browser because they could not be uploaded. They will try again on the next reload.';
+      } else {
+        tickError = '';
+      }
+    } catch (err) {
+      console.error(err);
+      ticks = uploadFailed ? local : {};
+      tickError = 'Could not load the ticks saved to your account. Check your connection, then reload.';
+    }
+  } else {
+    ticks = readLocalTicks();
+  }
+  render();
+}
+
+function applyTick(it, checked){
+  tickError = '';
+  if (checked) ticks[it.id] = 1; else delete ticks[it.id];
+  render();
+  let write;
+  if (account){
+    write = window.MYCSD_EVENT_REGISTRATIONS
+      ? window.MYCSD_EVENT_REGISTRATIONS.setRegistered(it.id, checked)
+      : Promise.reject(new Error('The registration API did not load.'));
+  } else {
+    write = Promise.resolve().then(() => {
+      if (!saveLocalTicks()) throw new Error('This browser is blocking storage.');
+    });
+  }
+  write.catch(err => {
+    console.error(err);
+    tickError = account
+      ? 'Could not save that tick to your account. Check your connection and try again.'
+      : 'Could not save that tick in this browser. Check your browser settings.';
+    refreshTicks();
+  });
+}
+
+async function clearAllTicks(){
+  const ids = Object.keys(ticks);
+  if (!ids.length || clearing) return;
+  const question = account
+    ? 'Remove all registered ticks from your account?'
+    : 'Remove all registered ticks from this browser?';
+  if (!confirm(question)) return;
+
+  clearing = true;
+  tickError = '';
+  ticks = {};
+  render();
+
+  if (account){
+    try {
+      await Promise.all(ids.map(id => window.MYCSD_EVENT_REGISTRATIONS.setRegistered(id, false)));
+    } catch (err) {
+      console.error(err);
+      tickError = 'Could not remove every tick from your account. Check your connection and try again.';
+    }
+    clearing = false;
+    await refreshTicks();
+    return;
+  }
+
+  if (!saveLocalTicks()) tickError = 'Could not clear ticks because this browser blocks saving.';
+  clearing = false;
+  render();
+}
+
 /* ---------- rendering: events tab ---------- */
 function regBox(it){
   const id = 'tick-'+it.id;
   const cb = h('input', {type:'checkbox', id, checked:!!ticks[it.id]});
   cb.checked = !!ticks[it.id];
-  cb.addEventListener('change', () => { if (cb.checked) ticks[it.id] = 1; else delete ticks[it.id]; saveTicks(); render(); });
+  cb.addEventListener('change', () => applyTick(it, cb.checked));
   return h('label', {class:'reg', for:id}, cb, 'registered');
 }
 function rowFor(it, now, opts){
@@ -404,6 +517,7 @@ function useStrip(){
 function renderEvents(root){
   const now = Date.now();
   const all = visibleBase(now);
+  if (tickError) root.append(h('p', {class:'note', role:'alert', text:tickError}));
   // summary line (counts each event once; only events that still can happen)
   const live = ITEMS.filter(it => it.myCsd && !hasEnded(it, now));
   const ticked = live.filter(it => ticks[it.id]).length;
@@ -509,6 +623,7 @@ function renderSimple(root, arr, kind, titleText, intro, closedStatic){
 /* ---------- settings tab ---------- */
 function renderSettings(root){
   const nTicks = Object.keys(ticks).length;
+  if (tickError) root.append(h('p', {class:'note', role:'alert', text:tickError}));
   const radio = (name, val, label, cur, set) => h('label', {class:'opt'}, h('input', {type:'radio', name, value:val, checked:cur===val, onchange:() => { set(val); saveSettings(); render(); }}), h('span', {text:label}));
   root.append(h('div', {class:'set'},
     h('h3', {text:'layout (events page)'}),
@@ -521,10 +636,14 @@ function renderSettings(root){
     h('p', {text:'This only changes the "open to you" marker on drives that name one campus (for example the Drone Club is Engineering campus only). Events that do not say who can join stay "eligibility not stated".'}),
     h('h3', {text:'events that do not mention myCSD'}),
     h('label', {class:'opt'}, h('input', {type:'checkbox', checked:settings.showNoCsd, onchange:e => { settings.showNoCsd = e.target.checked; saveSettings(); render(); }}), h('span', {text:'Show events that don\'t mention myCSD (they get a dashed "no myCSD mentioned" tag)'})),
-    h('h3', {text:'saved in this browser'}),
-    h('p', {text: storageOK ? 'Your ticks and these settings are saved only in this browser on this device. They do not sync to your phone or to your friend, and clearing browser data wipes them.' : 'This browser is blocking saving, so ticks and settings last only until you close or reload the page.'}),
+    h('h3', {text: account ? 'saved to your account' : 'saved in this browser'}),
+    h('p', {text: account
+      ? 'Your ticks are saved to your account and sync across browsers and devices.' + (storageOK ? ' The layout and campus settings above stay in this browser.' : ' This browser is blocking saving, so the layout and campus settings above last only until you reload.')
+      : storageOK
+        ? 'Your ticks are saved only in this browser, like the layout and campus settings above. Sign in with Google to move them to your account and sync across devices.'
+        : 'This browser is blocking saving, so ticks and settings last only until you close or reload the page.'}),
     h('p', {text:nTicks+' event'+(nTicks===1?'':'s')+' ticked as registered.'}),
-    h('button', {class:'btn', type:'button', text:'clear all ticks', disabled:!nTicks, onclick:() => { if (confirm('Remove all registered ticks from this browser?')){ ticks = {}; saveTicks(); render(); } }}),
+    h('button', {class:'btn', type:'button', text:'clear all ticks', disabled:!nTicks || clearing, onclick:clearAllTicks}),
     h('h3', {text:'how to read this page'}),
     h('ul', {},
       h('li', {text:'Dates and times are Malaysia time (UTC+8). A post\'s own date is never used as the event date.'}),
@@ -646,6 +765,46 @@ function openPop(it, trigger){
   pop.querySelector('.x').focus();
 }
 
+/* ---------- account ---------- */
+function renderAccount(){
+  const box = document.getElementById('account');
+  if (!box) return;
+  box.textContent = '';
+  if (account){
+    const email = (account.user && account.user.email) || 'signed in';
+    box.append(h('span', {class:'who', title:email, text:email}));
+    box.append(h('button', {class:'btn', type:'button', text:'sign out', onclick:startSignOut}));
+  } else {
+    box.append(h('button', {class:'btn', type:'button', text:'sign in with Google', onclick:startSignIn}));
+  }
+  if (authError) box.append(h('span', {class:'err', role:'alert', text:authError}));
+}
+async function startSignIn(){
+  authError = '';
+  if (!window.MYCSD_AUTH){
+    authError = 'Sign-in is not available on this page.';
+    renderAccount();
+    return;
+  }
+  try {
+    await window.MYCSD_AUTH.signInWithGoogle();
+  } catch (err) {
+    authError = err.message || 'Could not start sign-in. Try again.';
+    renderAccount();
+  }
+}
+async function startSignOut(){
+  authError = '';
+  if (!window.MYCSD_AUTH) return;
+  try {
+    await window.MYCSD_AUTH.signOut();
+  } catch (err) {
+    console.error(err);
+    authError = 'Could not sign out. Try again.';
+    renderAccount();
+  }
+}
+
 /* ---------- shell ---------- */
 const TABS = [['events','events'],['recruitment','recruitment'],['memberships','memberships'],['settings','settings']];
 function renderNav(){
@@ -663,9 +822,24 @@ function render(){
 }
 const hashTab = (location.hash || '').slice(1);
 if (TABS.some(t => t[0] === hashTab)) S.tab = hashTab;
-render();
-setInterval(() => { if (S.tab !== 'settings' && !document.querySelector('.ov')) { const sb = document.getElementById('listbox'); if (S.tab === 'events' && sb) renderList(); else if (S.tab !== 'events') render(); } }, 30000);
-window.matchMedia('(min-width: 800px)').addEventListener('change', () => { if (S.tab === 'events') render(); });
+
+async function start(){
+  if (window.MYCSD_AUTH){
+    if (window.MYCSD_AUTH.onChange) window.MYCSD_AUTH.onChange(function (session) {
+      account = session;
+      renderAccount();
+      refreshTicks();
+    });
+    try { account = await window.MYCSD_AUTH.getSession(); }
+    catch (err) { console.error(err); }
+  }
+  renderAccount();
+  await refreshTicks();
+  setInterval(() => { if (S.tab !== 'settings' && !document.querySelector('.ov')) { const sb = document.getElementById('listbox'); if (S.tab === 'events' && sb) renderList(); else if (S.tab !== 'events') render(); } }, 30000);
+  window.matchMedia('(min-width: 800px)').addEventListener('change', () => { if (S.tab === 'events') render(); });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once:true});
+else start();
 </script>
 </body>
 </html>
