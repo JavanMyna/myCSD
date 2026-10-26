@@ -38,16 +38,40 @@
     return new Set(rows.map(function (row) { return row.event_id; }));
   }
 
+  function uniqueIds(values) {
+    var seen = Object.create(null);
+    return (values || []).map(eventId).filter(function (id) {
+      if (seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+  }
+
+  // Adds many registrations in one statement; existing rows are left alone.
+  async function addRegistered(values) {
+    var ids = uniqueIds(values);
+    if (ids.length === 0) return;
+    var result = await client().from(TABLE).upsert(
+      ids.map(function (id) { return { event_id: id }; }),
+      { onConflict: "user_id,event_id", ignoreDuplicates: true }
+    );
+    if (result.error) throw result.error;
+  }
+
+  // Removes many registrations in one statement.
+  async function removeRegistered(values) {
+    var ids = uniqueIds(values);
+    if (ids.length === 0) return;
+    var result = await client().from(TABLE).delete().in("event_id", ids);
+    if (result.error) throw result.error;
+  }
+
   // Ticking is idempotent: a repeated insert keeps the existing row.
   async function setRegistered(value, registered) {
     var id = eventId(value);
 
     if (registered) {
-      var result = await client().from(TABLE).upsert(
-        { event_id: id },
-        { onConflict: "user_id,event_id", ignoreDuplicates: true }
-      );
-      if (result.error) throw result.error;
+      await addRegistered([id]);
       return;
     }
 
@@ -57,6 +81,8 @@
 
   window.MYCSD_EVENT_REGISTRATIONS = {
     loadRegistered: loadRegistered,
+    addRegistered: addRegistered,
+    removeRegistered: removeRegistered,
     setRegistered: setRegistered
   };
 }());

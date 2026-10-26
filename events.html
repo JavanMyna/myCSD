@@ -242,12 +242,21 @@ function clearLocalTicks(){
   try { localStorage.removeItem(TICKS_KEY); }
   catch (e) { storageOK = false; }
 }
+function dropLocalTicks(ids){
+  const saved = readLocalTicks();
+  let changed = false;
+  ids.forEach(id => { if (Object.prototype.hasOwnProperty.call(saved, id)){ delete saved[id]; changed = true; } });
+  if (!changed) return;
+  if (Object.keys(saved).length) store(TICKS_KEY, saved);
+  else clearLocalTicks();
+}
 function ticksFromSet(set){ const next = {}; set.forEach(id => { next[id] = 1; }); return next; }
 let ticks = readLocalTicks();
 let account = null;
 let tickError = '';
 let authError = '';
 let clearing = false;
+let refreshRun = 0;
 function saveSettings(){ store('mycsd.v1.settings', settings); }
 
 /* ---------- state ---------- */
@@ -261,6 +270,7 @@ const ITEMS = DATA.items.map(it => Object.assign({}, it, {
   e: it.end ? T(it.end) : null,
   dl: it.deadline ? T(it.deadline.date+'T23:59:59+08:00') : null
 }));
+const ITEM_IDS = new Set(ITEMS.map(it => it.id));
 const RECRUIT = DATA.recruit.map(r => Object.assign({}, r, {dl: r.deadline ? T(r.deadline+'T23:59:59+08:00') : null}));
 const MEMBERS = DATA.members.map(r => Object.assign({}, r, {dl: r.close ? T(r.close+'T23:59:59+08:00') : null}));
 
@@ -337,49 +347,73 @@ function visibleBase(now){
 }
 
 /* ---------- registered ticks: this browser when signed out, the account when signed in ---------- */
-async function refreshTicks(){
+async function refreshTicks(saveError){
+  const run = ++refreshRun;
+  const stale = () => run !== refreshRun;
+  let nextError = saveError || '';
+
   if (account){
     if (!window.MYCSD_EVENT_REGISTRATIONS){
+      if (stale()) return;
       ticks = {};
-      tickError = 'Could not reach tick storage. Reload the page.';
+      tickError = nextError || 'Could not reach tick storage. Reload the page.';
       render();
       return;
     }
 
     const api = window.MYCSD_EVENT_REGISTRATIONS;
     const local = readLocalTicks();
-    const localIds = Object.keys(local);
-    let uploadFailed = false;
+    const known = [];
+    const unknown = [];
+    Object.keys(local).forEach(id => (ITEM_IDS.has(id) ? known : unknown).push(id));
 
-    if (localIds.length){
-      const results = await Promise.allSettled(localIds.map(id => api.setRegistered(id, true)));
-      uploadFailed = results.some(result => result.status === 'rejected');
-      results.forEach(result => { if (result.status === 'rejected') console.error(result.reason); });
-      if (!uploadFailed) clearLocalTicks();
+    if (unknown.length){
+      console.warn('Dropped saved tick IDs that are not in this page\'s event data: ' + unknown.join(', '));
+      dropLocalTicks(unknown);
     }
 
-    try {
-      ticks = ticksFromSet(await api.loadRegistered());
-      if (uploadFailed){
-        Object.keys(local).forEach(id => { ticks[id] = 1; });
-        tickError = 'Some ticks are still only in this browser because they could not be uploaded. They will try again on the next reload.';
-      } else {
-        tickError = '';
+    let uploadFailed = false;
+    if (known.length){
+      try {
+        await api.addRegistered(known);
+        dropLocalTicks(known);
+      } catch (err) {
+        uploadFailed = true;
+        console.error(err);
       }
+    }
+
+    let loaded;
+    try {
+      loaded = ticksFromSet(await api.loadRegistered());
     } catch (err) {
+      if (stale()) return;
       console.error(err);
-      ticks = uploadFailed ? local : {};
+      ticks = uploadFailed ? readLocalTicks() : {};
       tickError = 'Could not load the ticks saved to your account. Check your connection, then reload.';
+      render();
+      return;
+    }
+    if (stale()) return;
+
+    ticks = loaded;
+    if (uploadFailed){
+      Object.keys(readLocalTicks()).forEach(id => { ticks[id] = 1; });
+      if (!nextError) nextError = 'Some ticks are still only in this browser because they could not be uploaded. They will try again on the next reload.';
     }
   } else {
     ticks = readLocalTicks();
   }
+
+  if (stale()) return;
+  tickError = nextError;
   render();
 }
 
 function applyTick(it, checked){
   tickError = '';
   if (checked) ticks[it.id] = 1; else delete ticks[it.id];
+  if (account) dropLocalTicks([it.id]);
   render();
   let write;
   if (account){
@@ -393,10 +427,9 @@ function applyTick(it, checked){
   }
   write.catch(err => {
     console.error(err);
-    tickError = account
+    refreshTicks(account
       ? 'Could not save that tick to your account. Check your connection and try again.'
-      : 'Could not save that tick in this browser. Check your browser settings.';
-    refreshTicks();
+      : 'Could not save that tick in this browser. Check your browser settings.');
   });
 }
 
@@ -411,17 +444,19 @@ async function clearAllTicks(){
   clearing = true;
   tickError = '';
   ticks = {};
+  if (account) clearLocalTicks();
   render();
 
   if (account){
+    let clearError = '';
     try {
-      await Promise.all(ids.map(id => window.MYCSD_EVENT_REGISTRATIONS.setRegistered(id, false)));
+      await window.MYCSD_EVENT_REGISTRATIONS.removeRegistered(ids);
     } catch (err) {
       console.error(err);
-      tickError = 'Could not remove every tick from your account. Check your connection and try again.';
+      clearError = 'Could not remove every tick from your account. Check your connection and try again.';
     }
     clearing = false;
-    await refreshTicks();
+    await refreshTicks(clearError);
     return;
   }
 
