@@ -96,6 +96,25 @@ create policy settings_delete_own
   on public.settings for delete to authenticated
   using (user_id = auth.uid());
 
+/* ---- allows user to save their registered myCSD events ----*/
+
+create table public.event_registrations (
+  user_id uuid not null default auth.uid()
+    references auth.users(id) on delete cascade,
+  event_id text not null check (char_length(event_id) between 1 and 100),
+  created_at timestamptz not null default now(),
+  primary key (user_id, event_id)
+);
+
+alter table public.event_registrations enable row level security;
+
+create policy "read own" on public.event_registrations
+  for select using (auth.uid() = user_id);
+create policy "insert own" on public.event_registrations
+  for insert with check (auth.uid() = user_id);
+create policy "delete own" on public.event_registrations
+  for delete using (auth.uid() = user_id);
+
 -- How to run and check it
 -- For the first setup, open SQL Editor, create a new query, paste this whole file,
 -- and click Run. This app does not run SQL against your project.
