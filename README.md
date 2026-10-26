@@ -13,8 +13,8 @@ Live site: https://mycsd.javanmyna.fyi
 - Edit or delete past activities.
 - See the current-sidang total, progress toward your target, a D-Day countdown, and message-style quotes.
 - Demo mode saves activities and settings in this browser only, with a persistent reminder and a Google sign-in option.
-- Export all activities and settings as JSON version 3.
-- Import an export from the menu: paste JSON or choose a .json file, preview new, duplicate, and invalid counts, then confirm. Import accepts versions 1–3 and only adds rows.
+- Export all activities, settings, and registered event IDs as JSON version 4.
+- Import an export from the menu: paste JSON or choose a .json file, preview new, duplicate, and invalid counts, then confirm. Import accepts versions 1–4 and only adds rows.
 - A faint `<.` credit mark sits at the bottom of each app page, and the settings page has a creator lightbox with a copyable domain.
 - Google sign-in keeps each account's data private and synced across devices.
 
@@ -28,7 +28,7 @@ From this folder, start a static server:
 
     python -m http.server 8000
 
-Then open http://localhost:8000. Google sign-in needs a localhost or HTTPS origin; demo mode works without signing in.
+Then open http://localhost:8000. Google sign-in needs a localhost or HTTPS origin; demo mode works without signing in. The Events page uses the same sign-in, so open it through this server at http://localhost:8000/events.html; opening the file directly keeps ticks in that browser only.
 
 ## Early access
 
