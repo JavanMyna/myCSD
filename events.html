@@ -411,6 +411,7 @@ async function refreshTicks(saveError){
 }
 
 function applyTick(it, checked){
+  refreshRun++;
   tickError = '';
   if (checked) ticks[it.id] = 1; else delete ticks[it.id];
   if (account) dropLocalTicks([it.id]);
@@ -434,6 +435,7 @@ function applyTick(it, checked){
 }
 
 async function clearAllTicks(){
+  refreshRun++;
   const ids = Object.keys(ticks);
   if (!ids.length || clearing) return;
   const question = account
